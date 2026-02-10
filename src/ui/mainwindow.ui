@@ -603,10 +603,10 @@
     <item>
      <widget class="QLabel" name="lblWorkspace">
       <property name="styleSheet">
-       <string notr="true">background-color: #2d2d30; color: #cccccc; font-size: 14px; padding: 10px;</string>
+       <string notr="true">font-size: 14px; padding: 10px; border-radius: 8px; font-weight: 500;</string>
       </property>
       <property name="text">
-       <string>主工作区（预留）</string>
+       <string>主工作区（图片展示区域）</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>

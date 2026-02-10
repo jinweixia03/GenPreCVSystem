@@ -22,15 +22,59 @@ set(PROJECT_SOURCES
         ${TS_FILES}
 )
 
+# Models
+set(MODEL_SOURCES
+    src/models/tabdata.h
+    src/models/tasktypes.h
+    src/models/undostack.h
+)
+
+# Utils
+set(UTILS_SOURCES
+    src/utils/imageprocessor.h
+    src/utils/imageprocessor.cpp
+    src/utils/clipboardhelper.h
+    src/utils/clipboardhelper.cpp
+    src/utils/fileutils.h
+    src/utils/fileutils.cpp
+)
+
+# Views
+set(VIEWS_SOURCES
+    src/views/imageview.h
+    src/views/imageview.cpp
+    src/views/filetreeview.h
+    src/views/filetreeview.cpp
+    src/views/imagefilefilterproxy.h
+    src/views/imagefilefilterproxy.cpp
+)
+
+# Controllers
+set(CONTROLLERS_SOURCES
+    src/controllers/tabcontroller.h
+    src/controllers/tabcontroller.cpp
+    src/controllers/imagecontroller.h
+    src/controllers/imagecontroller.cpp
+    src/controllers/filecontroller.h
+    src/controllers/filecontroller.cpp
+    src/controllers/taskcontroller.h
+    src/controllers/taskcontroller.cpp
+    src/controllers/parameterpanelfactory.h
+    src/controllers/parameterpanelfactory.cpp
+)
+
+list(APPEND PROJECT_SOURCES
+    ${MODEL_SOURCES}
+    ${UTILS_SOURCES}
+    ${VIEWS_SOURCES}
+    ${CONTROLLERS_SOURCES}
+)
+
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(GenPreCVSystem
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
     )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET GenPreCVSystem APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 else()
@@ -38,8 +82,6 @@ else()
         add_library(GenPreCVSystem SHARED
             ${PROJECT_SOURCES}
         )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
         add_executable(GenPreCVSystem
             ${PROJECT_SOURCES}
@@ -50,27 +92,6 @@ else()
 endif()
 
 target_link_libraries(GenPreCVSystem PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-
-# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
-# If you are developing for iOS or macOS you should consider setting an
-# explicit, fixed bundle identifier manually though.
-if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.GenPreCVSystem)
-endif()
-set_target_properties(GenPreCVSystem PROPERTIES
-    ${BUNDLE_ID_OPTION}
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
-)
-
-include(GNUInstallDirs)
-install(TARGETS GenPreCVSystem
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
 
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(GenPreCVSystem)

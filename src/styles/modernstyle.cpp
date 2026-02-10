@@ -3,6 +3,31 @@
 namespace GenPreCVSystem {
 namespace UI {
 
+// 深色主题配色
+#define DARK_BG "#1E1E1E"
+#define DARK_BG_SECONDARY "#252526"
+#define DARK_BG_TERTIARY "#2D2D30"
+#define DARK_BG_HOVER "#3E3E42"
+#define DARK_BG_PRESSED "#094771"
+#define DARK_BORDER "#3E3E42"
+#define DARK_TEXT "#CCCCCC"
+#define DARK_TEXT_DISABLED "#6D6D6D"
+#define DARK_ACCENT "#007ACC"
+#define DARK_ACCENT_HOVER "#1E90FF"
+#define DANGER "#D13438"
+#define SUCCESS "#107C10"
+#define WARNING "#FF8C00"
+
+// 浅色主题配色
+#define LIGHT_BG "#FFFFFF"
+#define LIGHT_BG_SECONDARY "#F3F3F3"
+#define LIGHT_BG_TERTIARY "#E5E5E5"
+#define LIGHT_BG_HOVER "#E1E1E1"
+#define LIGHT_BG_PRESSED "#CCE5FF"
+#define LIGHT_BORDER "#D1D1D1"
+#define LIGHT_TEXT "#1E1E1E"
+#define LIGHT_TEXT_DISABLED "#A0A0A0"
+
 QString ModernStyle::darkTheme()
 {
     return R"(
@@ -83,7 +108,7 @@ QString ModernStyle::darkTheme()
             border-top: 1px solid )" DARK_BORDER R"(;
         }
 
-    )" scrollBarStyle(true) +
+    )" + scrollBarStyle(true) +
     dockWidgetStyle(true) +
     tabWidgetStyle(true) +
     buttonStyle(true) +
@@ -147,7 +172,7 @@ QString ModernStyle::lightTheme()
             background-color: )" LIGHT_BG_HOVER R"(;
         }
 
-    )" scrollBarStyle(false) +
+    )" + scrollBarStyle(false) +
     dockWidgetStyle(false) +
     tabWidgetStyle(false) +
     buttonStyle(false) +
@@ -469,28 +494,6 @@ QString ModernStyle::treeViewStyle(bool dark)
             background-color: transparent;
         }
 
-        QTreeView::branch:has-children:!has-siblings:closed,
-        QTreeView::branch:closed:has-children:has-siblings {
-            border-image: none;
-            image: url(:/icons/branch-closed.png);
-        }
-
-        QTreeView::branch:open:has-children:!has-siblings,
-        QTreeView::branch:open:has-children:has-siblings {
-            border-image: none;
-            image: url(:/icons/branch-open.png);
-        }
-
-        QTreeView::branch:has-children:!has-siblings:closed:hover,
-        QTreeView::branch:closed:has-children:has-siblings:hover {
-            image: url(:/icons/branch-closed-hover.png);
-        }
-
-        QTreeView::branch:open:has-children:!has-siblings:hover,
-        QTreeView::branch:open:has-children:has-siblings:hover {
-            image: url(:/icons/branch-open-hover.png);
-        }
-
         QTreeView::indicator {
             width: 18px;
             height: 18px;
@@ -501,7 +504,6 @@ QString ModernStyle::treeViewStyle(bool dark)
         QTreeView::indicator:checked {
             background-color: %3;
             border: none;
-            image: url(:/icons/check.png);
         }
     )").arg(bg, bgHover, bgSelected, text);
 }
@@ -585,10 +587,6 @@ QString ModernStyle::comboBoxStyle(bool dark)
             width: 20px;
         }
 
-        QComboBox::down-arrow {
-            image: url(:/icons/arrow-down.png);
-        }
-
         QComboBox QAbstractItemView {
             background-color: %2;
             border: 1px solid %3;
@@ -669,7 +667,6 @@ QString ModernStyle::checkBoxStyle(bool dark)
         QCheckBox::indicator:checked {
             background-color: %4;
             border: none;
-            image: url(:/icons/check.png);
         }
 
         QCheckBox::indicator:hover {

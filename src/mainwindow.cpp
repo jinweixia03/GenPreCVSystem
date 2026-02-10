@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
-#include "styles/thememanager.h"
+// TODO: 主题功能暂时禁用，待头文件路径问题解决
+// #include "styles/thememanager.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QDir>
@@ -423,8 +424,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // 应用现代化主题样式
-    UI::ThemeManager::instance()->applyTheme();
+    // TODO: 应用现代化主题样式（暂时注释，待头文件路径问题解决后启用）
+    // #include "styles/thememanager.h"
+    // UI::ThemeManager::instance()->applyTheme();
 
     // 必须先创建停靠窗口（包括 paramScrollArea），然后才能初始化任务菜单
     setupImageViewer();
@@ -1153,8 +1155,9 @@ void MainWindow::on_actionShowLogOutput_triggered(bool checked)
  */
 void MainWindow::on_actionThemeDark_triggered()
 {
-    UI::ThemeManager::instance()->setTheme(UI::Theme::Dark);
-    logMessage("已切换到深色主题");
+    // TODO: 实现主题切换功能
+    // UI::ThemeManager::instance()->setTheme(UI::Theme::Dark);
+    logMessage("主题切换功能待实现（需要解决头文件路径问题）");
 }
 
 /**
@@ -1162,8 +1165,9 @@ void MainWindow::on_actionThemeDark_triggered()
  */
 void MainWindow::on_actionThemeLight_triggered()
 {
-    UI::ThemeManager::instance()->setTheme(UI::Theme::Light);
-    logMessage("已切换到浅色主题");
+    // TODO: 实现主题切换功能
+    // UI::ThemeManager::instance()->setTheme(UI::Theme::Light);
+    logMessage("主题切换功能待实现（需要解决头文件路径问题）");
 }
 
 /**
@@ -1171,9 +1175,11 @@ void MainWindow::on_actionThemeLight_triggered()
  */
 void MainWindow::on_actionThemeToggle_triggered()
 {
-    UI::ThemeManager::instance()->toggleTheme();
-    UI::Theme theme = UI::ThemeManager::instance()->currentTheme();
-    logMessage(QString("已切换到%1主题").arg(theme == UI::Theme::Dark ? "深色" : "浅色"));
+    // TODO: 实现主题切换功能
+    // UI::ThemeManager::instance()->toggleTheme();
+    // UI::Theme theme = UI::ThemeManager::instance()->currentTheme();
+    // logMessage(QString("已切换到%1主题").arg(theme == UI::Theme::Dark ? "深色" : "浅色"));
+    logMessage("主题切换功能待实现（需要解决头文件路径问题）");
 }
 
 // ==================== 图像菜单槽函数 ====================

@@ -93,32 +93,6 @@ public:
      * @brief 获取工具提示样式
      */
     static QString toolTipStyle(bool dark = true);
-
-private:
-    // 深色主题配色
-    static constexpr const char* DARK_BG = "#1E1E1E";
-    static constexpr const char* DARK_BG_SECONDARY = "#252526";
-    static constexpr const char* DARK_BG_TERTIARY = "#2D2D30";
-    static constexpr const char* DARK_BG_HOVER = "#3E3E42";
-    static constexpr const char* DARK_BG_PRESSED = "#094771";
-    static constexpr const char* DARK_BORDER = "#3E3E42";
-    static constexpr const char* DARK_TEXT = "#CCCCCC";
-    static constexpr const char* DARK_TEXT_DISABLED = "#6D6D6D";
-    static constexpr const char* DARK_ACCENT = "#007ACC";
-    static constexpr const char* DARK_ACCENT_HOVER = "#1E90FF";
-    static constexpr const char* DANGER = "#D13438";
-    static constexpr const char* SUCCESS = "#107C10";
-    static constexpr const char* WARNING = "#FF8C00";
-
-    // 浅色主题配色
-    static constexpr const char* LIGHT_BG = "#FFFFFF";
-    static constexpr const char* LIGHT_BG_SECONDARY = "#F3F3F3";
-    static constexpr const char* LIGHT_BG_TERTIARY = "#E5E5E5";
-    static constexpr const char* LIGHT_BG_HOVER = "#E1E1E1";
-    static constexpr const char* LIGHT_BG_PRESSED = "#CCE5FF";
-    static constexpr const char* LIGHT_BORDER = "#D1D1D1";
-    static constexpr const char* LIGHT_TEXT = "#1E1E1E";
-    static constexpr const char* LIGHT_TEXT_DISABLED = "#A0A0A0";
 };
 
 } // namespace UI

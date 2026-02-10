@@ -63,11 +63,20 @@ set(CONTROLLERS_SOURCES
     src/controllers/parameterpanelfactory.cpp
 )
 
+# Styles
+set(STYLES_SOURCES
+    src/styles/modernstyle.h
+    src/styles/modernstyle.cpp
+    src/styles/thememanager.h
+    src/styles/thememanager.cpp
+)
+
 list(APPEND PROJECT_SOURCES
     ${MODEL_SOURCES}
     ${UTILS_SOURCES}
     ${VIEWS_SOURCES}
     ${CONTROLLERS_SOURCES}
+    ${STYLES_SOURCES}
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

@@ -250,6 +250,9 @@ private slots:
     void on_actionShowFileBrowser_triggered(bool checked);
     void on_actionShowParameterPanel_triggered(bool checked);
     void on_actionShowLogOutput_triggered(bool checked);
+    void on_actionThemeDark_triggered();
+    void on_actionThemeLight_triggered();
+    void on_actionThemeToggle_triggered();
 
     // ========== 图像菜单槽函数 ==========
 

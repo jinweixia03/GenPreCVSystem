@@ -1,4 +1,5 @@
 #include "imageview.h"
+#include <QScrollBar>
 
 namespace GenPreCVSystem {
 namespace Views {

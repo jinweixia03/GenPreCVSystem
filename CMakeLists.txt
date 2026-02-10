@@ -102,6 +102,11 @@ endif()
 
 target_link_libraries(GenPreCVSystem PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 
+# 添加源目录到包含路径，使子目录的头文件可以相互引用
+target_include_directories(GenPreCVSystem PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(GenPreCVSystem)
 endif()

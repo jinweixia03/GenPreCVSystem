@@ -16,8 +16,7 @@ TabController::TabController(QTabWidget *tabWidget, QObject *parent)
 
 TabController::~TabController()
 {
-    // 清理撤销栈
-    qDeleteAll(m_tabData);
+    // m_tabData 中的 TabData 是值类型，会自动清理
 }
 
 bool TabController::loadImage(const QString &filePath)

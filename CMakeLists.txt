@@ -12,13 +12,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
 
-set(TS_FILES src/GenPreCVSystem_en_AS.ts)
+set(TS_FILES src/resources/GenPreCVSystem_en_AS.ts)
 
 set(PROJECT_SOURCES
         src/main.cpp
-        src/mainwindow.cpp
-        src/mainwindow.h
-        src/mainwindow.ui
+        src/ui/mainwindow.cpp
+        src/ui/mainwindow.h
+        src/ui/mainwindow.ui
         ${TS_FILES}
 )
 
@@ -63,25 +63,17 @@ set(CONTROLLERS_SOURCES
     src/controllers/parameterpanelfactory.cpp
 )
 
-# Styles
-set(STYLES_SOURCES
-    src/styles/modernstyle.h
-    src/styles/modernstyle.cpp
-    src/styles/thememanager.h
-    src/styles/thememanager.cpp
-)
-
 list(APPEND PROJECT_SOURCES
     ${MODEL_SOURCES}
     ${UTILS_SOURCES}
     ${VIEWS_SOURCES}
     ${CONTROLLERS_SOURCES}
-    ${STYLES_SOURCES}
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(GenPreCVSystem
         MANUAL_FINALIZATION
+        WIN32
         ${PROJECT_SOURCES}
     )
 
@@ -93,6 +85,7 @@ else()
         )
     else()
         add_executable(GenPreCVSystem
+            WIN32
             ${PROJECT_SOURCES}
         )
     endif()
@@ -102,10 +95,20 @@ endif()
 
 target_link_libraries(GenPreCVSystem PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 
-# 添加源目录到包含路径，使子目录的头文件可以相互引用
-target_include_directories(GenPreCVSystem PRIVATE
+# 添加源目录和所有子目录到包含路径，使子目录的头文件可以相互引用
+# 使用PUBLIC确保所有源文件都能访问
+target_include_directories(GenPreCVSystem PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/models
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/views
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/controllers
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
 )
+
+# 添加源目录到AUTOUIC和AUTOMOC的搜索路径
+set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_AUTOUIC_SEARCH_PATHS} ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/ui)
+set(CMAKE_AUTOMOC_MACRO_NAMES ${CMAKE_AUTOMOC_MACRO_NAMES} ${CMAKE_AUTOMOC_MACRO_NAMES})
 
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(GenPreCVSystem)

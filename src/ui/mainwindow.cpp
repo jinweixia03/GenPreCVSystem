@@ -1,7 +1,5 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
-// TODO: 主题功能暂时禁用，待头文件路径问题解决
-// #include "styles/thememanager.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QDir>
@@ -58,9 +56,9 @@ ImageView::ImageView(QWidget *parent)
     m_scene = new QGraphicsScene(this);
     setScene(m_scene);
 
-    // 设置外观样式
+    // 设置外观样式（使用透明背景，让主题系统控制）
     setStyleSheet(
-        "ImageView { background-color: #1e1e1e; border: none; }"
+        "ImageView { background-color: transparent; border: none; }"
     );
 
     // 设置渲染选项（抗锯齿、平滑）
@@ -423,10 +421,6 @@ MainWindow::MainWindow(QWidget *parent)
     , m_currentTask(CVTask::ImageClassification)
 {
     ui->setupUi(this);
-
-    // TODO: 应用现代化主题样式（暂时注释，待头文件路径问题解决后启用）
-    // #include "styles/thememanager.h"
-    // UI::ThemeManager::instance()->applyTheme();
 
     // 必须先创建停靠窗口（包括 paramScrollArea），然后才能初始化任务菜单
     setupImageViewer();
@@ -1148,40 +1142,6 @@ void MainWindow::on_actionShowLogOutput_triggered(bool checked)
     dockLogOutput->setVisible(checked);
 }
 
-// ==================== 主题菜单槽函数 ====================
-
-/**
- * @brief 切换到深色主题
- */
-void MainWindow::on_actionThemeDark_triggered()
-{
-    // TODO: 实现主题切换功能
-    // UI::ThemeManager::instance()->setTheme(UI::Theme::Dark);
-    logMessage("主题切换功能待实现（需要解决头文件路径问题）");
-}
-
-/**
- * @brief 切换到浅色主题
- */
-void MainWindow::on_actionThemeLight_triggered()
-{
-    // TODO: 实现主题切换功能
-    // UI::ThemeManager::instance()->setTheme(UI::Theme::Light);
-    logMessage("主题切换功能待实现（需要解决头文件路径问题）");
-}
-
-/**
- * @brief 切换主题（深色/浅色）
- */
-void MainWindow::on_actionThemeToggle_triggered()
-{
-    // TODO: 实现主题切换功能
-    // UI::ThemeManager::instance()->toggleTheme();
-    // UI::Theme theme = UI::ThemeManager::instance()->currentTheme();
-    // logMessage(QString("已切换到%1主题").arg(theme == UI::Theme::Dark ? "深色" : "浅色"));
-    logMessage("主题切换功能待实现（需要解决头文件路径问题）");
-}
-
 // ==================== 图像菜单槽函数 ====================
 
 /**
@@ -1402,7 +1362,7 @@ void MainWindow::on_actionSettings_triggered()
 {
     QDialog dialog(this);
     dialog.setWindowTitle("设置");
-    dialog.resize(400, 300);
+    dialog.resize(450, 350);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(&dialog);
 
@@ -1412,7 +1372,7 @@ void MainWindow::on_actionSettings_triggered()
 
     QSpinBox *qualitySpinBox = new QSpinBox(&dialog);
     qualitySpinBox->setRange(1, 100);
-    qualitySpinBox->setValue(95);
+    qualitySpinBox->setValue(100);
     qualitySpinBox->setSuffix(" %");
     imageLayout->addRow("默认保存质量:", qualitySpinBox);
 
@@ -1437,17 +1397,6 @@ void MainWindow::on_actionSettings_triggered()
     viewLayout->addWidget(smoothCheckBox);
 
     mainLayout->addWidget(viewGroup);
-
-    // 界面设置组
-    QGroupBox *uiGroup = new QGroupBox("界面设置", &dialog);
-    QVBoxLayout *uiLayout = new QVBoxLayout(uiGroup);
-
-    QCheckBox *darkModeCheckBox = new QCheckBox("深色模式", &dialog);
-    darkModeCheckBox->setChecked(true);
-    darkModeCheckBox->setEnabled(false); // 暂时禁用，只支持深色模式
-    uiLayout->addWidget(darkModeCheckBox);
-
-    mainLayout->addWidget(uiGroup);
 
     mainLayout->addStretch();
 

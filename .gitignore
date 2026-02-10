@@ -104,10 +104,10 @@ d3dcompiler_*.dll
 nul
 
 # VSCode
-# .vscode/
+.vscode/
 
 # Claude Code
-# .claude/
+.claude/
 
 # Model directory (placeholder)
 /src/model/

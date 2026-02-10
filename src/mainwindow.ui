@@ -1,0 +1,624 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1280</width>
+    <height>800</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>GenPreCVSystem - 计算机视觉预处理系统</string>
+  </property>
+
+  <!-- 菜单栏 -->
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1280</width>
+     <height>22</height>
+    </rect>
+   </property>
+
+   <!-- 文件菜单 -->
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>文件(&amp;F)</string>
+    </property>
+    <addaction name="actionOpenImage"/>
+    <addaction name="actionOpenFolder"/>
+    <addaction name="separator"/>
+    <addaction name="actionCloseImage"/>
+    <addaction name="actionSaveImage"/>
+    <addaction name="actionSaveImageAs"/>
+    <addaction name="separator"/>
+    <addaction name="actionExport"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
+   </widget>
+
+   <!-- 编辑菜单 -->
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>编辑(&amp;E)</string>
+    </property>
+    <addaction name="actionUndo"/>
+    <addaction name="actionRedo"/>
+    <addaction name="separator"/>
+    <addaction name="actionCopyImage"/>
+    <addaction name="actionPaste"/>
+    <addaction name="separator"/>
+    <addaction name="actionRotateLeft"/>
+    <addaction name="actionRotateRight"/>
+    <addaction name="actionFlipHorizontal"/>
+    <addaction name="actionFlipVertical"/>
+   </widget>
+
+   <!-- 视图菜单 -->
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>视图(&amp;V)</string>
+    </property>
+    <addaction name="actionZoomIn"/>
+    <addaction name="actionZoomOut"/>
+    <addaction name="actionFitToWindow"/>
+    <addaction name="actionActualSize"/>
+    <addaction name="separator"/>
+    <addaction name="actionShowFileBrowser"/>
+    <addaction name="actionShowParameterPanel"/>
+    <addaction name="actionShowLogOutput"/>
+   </widget>
+
+   <!-- 图像菜单 -->
+   <widget class="QMenu" name="menuImage">
+    <property name="title">
+     <string>图像(&amp;I)</string>
+    </property>
+    <addaction name="actionGrayscale"/>
+    <addaction name="actionInvert"/>
+    <addaction name="separator"/>
+    <addaction name="actionBlur"/>
+    <addaction name="actionSharpen"/>
+    <addaction name="separator"/>
+    <addaction name="actionEdgeDetection"/>
+    <addaction name="actionThreshold"/>
+   </widget>
+
+   <!-- 任务菜单 -->
+   <widget class="QMenu" name="menuTasks">
+    <property name="title">
+     <string>任务(&amp;K)</string>
+    </property>
+    <addaction name="actionTaskImageClassification"/>
+    <addaction name="actionTaskObjectDetection"/>
+    <addaction name="actionTaskSemanticSegmentation"/>
+    <addaction name="actionTaskInstanceSegmentation"/>
+    <addaction name="actionTaskKeyPointDetection"/>
+    <addaction name="separator"/>
+    <addaction name="actionTaskImageEnhancement"/>
+    <addaction name="actionTaskImageDenoising"/>
+    <addaction name="actionTaskEdgeDetection"/>
+   </widget>
+
+   <!-- 工具菜单 -->
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>工具(&amp;T)</string>
+    </property>
+    <addaction name="actionSettings"/>
+    <addaction name="separator"/>
+    <addaction name="actionProcess"/>
+    <addaction name="actionStop"/>
+   </widget>
+
+   <!-- 帮助菜单 -->
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>帮助(&amp;H)</string>
+    </property>
+    <addaction name="actionDocumentation"/>
+    <addaction name="actionShortcuts"/>
+    <addaction name="separator"/>
+    <addaction name="actionAbout"/>
+   </widget>
+
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuView"/>
+   <addaction name="menuImage"/>
+   <addaction name="menuTasks"/>
+   <addaction name="menuTools"/>
+   <addaction name="menuHelp"/>
+  </widget>
+
+  <!-- ==================== 文件菜单动作 ==================== -->
+  <action name="actionOpenImage">
+   <property name="text">
+    <string>打开图片(&amp;O)...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+   <property name="toolTip">
+    <string>打开图片文件</string>
+   </property>
+  </action>
+  <action name="actionOpenFolder">
+   <property name="text">
+    <string>打开文件夹(&amp;D)...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
+   </property>
+   <property name="toolTip">
+    <string>打开包含图片的文件夹</string>
+   </property>
+  </action>
+  <action name="actionCloseImage">
+   <property name="text">
+    <string>关闭图片(&amp;C)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+W</string>
+   </property>
+   <property name="toolTip">
+    <string>关闭当前图片</string>
+   </property>
+  </action>
+  <action name="actionSaveImage">
+   <property name="text">
+    <string>保存(&amp;S)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+   <property name="toolTip">
+    <string>保存当前图片</string>
+   </property>
+  </action>
+  <action name="actionSaveImageAs">
+   <property name="text">
+    <string>另存为(&amp;A)...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
+   </property>
+   <property name="toolTip">
+    <string>将图片保存到新文件</string>
+   </property>
+  </action>
+  <action name="actionExport">
+   <property name="text">
+    <string>导出(&amp;E)...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+E</string>
+   </property>
+   <property name="toolTip">
+    <string>导出处理后的图片</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>退出(&amp;X)</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+F4</string>
+   </property>
+  </action>
+
+  <!-- ==================== 编辑菜单动作 ==================== -->
+  <action name="actionUndo">
+   <property name="text">
+    <string>撤销(&amp;U)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Z</string>
+   </property>
+  </action>
+  <action name="actionRedo">
+   <property name="text">
+    <string>重做(&amp;R)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Y</string>
+   </property>
+  </action>
+  <action name="actionCopyImage">
+   <property name="text">
+    <string>复制图片(&amp;C)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+C</string>
+   </property>
+   <property name="toolTip">
+    <string>复制当前图片到剪贴板</string>
+   </property>
+  </action>
+  <action name="actionPaste">
+   <property name="text">
+    <string>粘贴(&amp;P)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+V</string>
+   </property>
+   <property name="toolTip">
+    <string>从剪贴板粘贴图片</string>
+   </property>
+  </action>
+  <action name="actionRotateLeft">
+   <property name="text">
+    <string>向左旋转 90°(&amp;L)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
+   </property>
+   </action>
+  <action name="actionRotateRight">
+   <property name="text">
+    <string>向右旋转 90°(&amp;R)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="actionFlipHorizontal">
+   <property name="text">
+    <string>水平翻转(&amp;H)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+H</string>
+   </property>
+  </action>
+  <action name="actionFlipVertical">
+   <property name="text">
+    <string>垂直翻转(&amp;V)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+H</string>
+   </property>
+  </action>
+
+  <!-- ==================== 视图菜单动作 ==================== -->
+  <action name="actionZoomIn">
+   <property name="text">
+    <string>放大(&amp;I)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl++</string>
+   </property>
+   <property name="toolTip">
+    <string>放大图片显示</string>
+   </property>
+  </action>
+  <action name="actionZoomOut">
+   <property name="text">
+    <string>缩小(&amp;O)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+-</string>
+   </property>
+   <property name="toolTip">
+    <string>缩小图片显示</string>
+   </property>
+  </action>
+  <action name="actionFitToWindow">
+   <property name="text">
+    <string>适应窗口(&amp;F)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
+   </property>
+   <property name="toolTip">
+    <string>使图片适应窗口大小</string>
+   </property>
+  </action>
+  <action name="actionActualSize">
+   <property name="text">
+    <string>实际大小(&amp;A)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+1</string>
+   </property>
+   <property name="toolTip">
+    <string>以实际大小显示图片</string>
+   </property>
+  </action>
+  <action name="actionShowFileBrowser">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>文件浏览器</string>
+   </property>
+  </action>
+  <action name="actionShowParameterPanel">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>参数面板</string>
+   </property>
+  </action>
+  <action name="actionShowLogOutput">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>日志输出</string>
+   </property>
+  </action>
+
+  <!-- ==================== 图像菜单动作 ==================== -->
+  <action name="actionGrayscale">
+   <property name="text">
+    <string>灰度化(&amp;G)</string>
+   </property>
+   <property name="toolTip">
+    <string>将图片转换为灰度图</string>
+   </property>
+  </action>
+  <action name="actionInvert">
+   <property name="text">
+    <string>反色(&amp;I)</string>
+   </property>
+   <property name="toolTip">
+    <string>反转图片颜色</string>
+   </property>
+  </action>
+  <action name="actionBlur">
+   <property name="text">
+    <string>模糊(&amp;B)</string>
+   </property>
+   <property name="toolTip">
+    <string>高斯模糊处理</string>
+   </property>
+  </action>
+  <action name="actionSharpen">
+   <property name="text">
+    <string>锐化(&amp;S)</string>
+   </property>
+   <property name="toolTip">
+    <string>锐化图片边缘</string>
+   </property>
+  </action>
+  <action name="actionEdgeDetection">
+   <property name="text">
+    <string>边缘检测(&amp;E)</string>
+   </property>
+   <property name="toolTip">
+    <string>Canny 边缘检测</string>
+   </property>
+  </action>
+  <action name="actionThreshold">
+   <property name="text">
+    <string>二值化(&amp;T)</string>
+   </property>
+   <property name="toolTip">
+    <string>图像二值化处理</string>
+   </property>
+  </action>
+
+  <!-- ==================== 任务菜单动作 ==================== -->
+  <action name="actionTaskImageClassification">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>图像分类(&amp;C)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+C</string>
+   </property>
+   <property name="toolTip">
+    <string>图像分类任务</string>
+   </property>
+  </action>
+  <action name="actionTaskObjectDetection">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>目标检测(&amp;O)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+O</string>
+   </property>
+   <property name="toolTip">
+    <string>目标检测任务</string>
+   </property>
+  </action>
+  <action name="actionTaskSemanticSegmentation">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>语义分割(&amp;S)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
+   </property>
+   <property name="toolTip">
+    <string>语义分割任务</string>
+   </property>
+  </action>
+  <action name="actionTaskInstanceSegmentation">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>实例分割(&amp;I)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+I</string>
+   </property>
+   <property name="toolTip">
+    <string>实例分割任务</string>
+   </property>
+  </action>
+  <action name="actionTaskKeyPointDetection">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>关键点检测(&amp;K)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+K</string>
+   </property>
+   <property name="toolTip">
+    <string>关键点检测任务</string>
+   </property>
+  </action>
+  <action name="actionTaskImageEnhancement">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>图像增强(&amp;E)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+E</string>
+   </property>
+   <property name="toolTip">
+    <string>图像增强任务</string>
+   </property>
+  </action>
+  <action name="actionTaskImageDenoising">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>图像去噪(&amp;D)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+D</string>
+   </property>
+   <property name="toolTip">
+    <string>图像去噪任务</string>
+   </property>
+  </action>
+  <action name="actionTaskEdgeDetection">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>边缘检测(&amp;G)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+G</string>
+   </property>
+   <property name="toolTip">
+    <string>边缘检测任务</string>
+   </property>
+  </action>
+
+  <!-- ==================== 工具菜单动作 ==================== -->
+  <action name="actionSettings">
+   <property name="text">
+    <string>设置(&amp;S)...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+,</string>
+   </property>
+   <property name="toolTip">
+    <string>打开设置对话框</string>
+   </property>
+  </action>
+  <action name="actionProcess">
+   <property name="text">
+    <string>运行处理(&amp;R)</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
+   </property>
+   <property name="toolTip">
+    <string>运行图像处理流程</string>
+   </property>
+  </action>
+  <action name="actionStop">
+   <property name="text">
+    <string>停止(&amp;T)</string>
+   </property>
+   <property name="shortcut">
+    <string>Shift+F5</string>
+   </property>
+   <property name="toolTip">
+    <string>停止当前处理</string>
+   </property>
+  </action>
+
+  <!-- ==================== 帮助菜单动作 ==================== -->
+  <action name="actionDocumentation">
+   <property name="text">
+    <string>使用文档(&amp;D)</string>
+   </property>
+   <property name="shortcut">
+    <string>F1</string>
+   </property>
+  </action>
+  <action name="actionShortcuts">
+   <property name="text">
+    <string>快捷键(&amp;K)...</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>关于(&amp;A)...</string>
+   </property>
+  </action>
+
+  <!-- 中央部件 -->
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="QLabel" name="lblWorkspace">
+      <property name="styleSheet">
+       <string notr="true">background-color: #2d2d30; color: #cccccc; font-size: 14px; padding: 10px;</string>
+      </property>
+      <property name="text">
+       <string>主工作区（预留）</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+
+  <!-- 状态栏 -->
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -18,6 +18,13 @@
 #include <QMenu>
 #include <QProcess>
 
+// 前向声明
+namespace GenPreCVSystem {
+namespace Controllers {
+class TaskController;
+}
+}
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -31,7 +38,6 @@ enum class CVTask {
     ImageClassification,      ///< 图像分类
     ObjectDetection,          ///< 目标检测
     SemanticSegmentation,     ///< 语义分割
-    InstanceSegmentation,     ///< 实例分割
     KeyPointDetection,        ///< 关键点检测
     ImageEnhancement,         ///< 图像增强
     ImageDenoising,           ///< 图像去噪
@@ -253,11 +259,10 @@ private slots:
 
     // ========== 图像菜单槽函数 ==========
 
-    void on_actionGrayscale_triggered();
-    void on_actionInvert_triggered();
+    void on_actionGrayscale_triggered(bool checked);
+    void on_actionInvert_triggered(bool checked);
     void on_actionBlur_triggered();
     void on_actionSharpen_triggered();
-    void on_actionEdgeDetection_triggered();
     void on_actionThreshold_triggered();
 
     // ========== 任务菜单槽函数 ==========
@@ -265,7 +270,6 @@ private slots:
     void on_actionTaskImageClassification_triggered();
     void on_actionTaskObjectDetection_triggered();
     void on_actionTaskSemanticSegmentation_triggered();
-    void on_actionTaskInstanceSegmentation_triggered();
     void on_actionTaskKeyPointDetection_triggered();
     void on_actionTaskImageEnhancement_triggered();
     void on_actionTaskImageDenoising_triggered();
@@ -352,6 +356,7 @@ private:
 
     QActionGroup *taskActionGroup; ///< 任务动作组（互斥选择）
     CVTask m_currentTask;          ///< 当前选中的任务
+    GenPreCVSystem::Controllers::TaskController *m_taskController; ///< 任务控制器
 
     // ========== 参数面板控件 ==========
 
@@ -481,11 +486,6 @@ private:
     QWidget* createSemanticSegmentationParams();
 
     /**
-     * @brief 创建实例分割参数面板
-     */
-    QWidget* createInstanceSegmentationParams();
-
-    /**
      * @brief 创建关键点检测参数面板
      */
     QWidget* createKeyPointDetectionParams();
@@ -589,16 +589,15 @@ private:
     QImage sharpenImage(const QImage &image, double strength = 1.0);
 
     /**
-     * @brief Sobel边缘检测
-     * @param image 输入图片
-     * @return 边缘检测后的图片
-     */
-    QImage sobelEdgeDetection(const QImage &image);
-
-    /**
      * @brief 切换任务类型
      */
     void switchTask(CVTask task);
+
+    // ========== 灰度/反色状态追踪 ==========
+
+    QPixmap m_originalPixmap;       ///< 灰度/反色前的原始图片
+    bool m_isGrayscale = false;     ///< 当前是否为灰度状态
+    bool m_isInverted = false;      ///< 当前是否为反色状态
 };
 
 #endif // MAINWINDOW_H

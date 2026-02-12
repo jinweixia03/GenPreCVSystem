@@ -84,8 +84,6 @@
     <addaction name="separator"/>
     <addaction name="actionBlur"/>
     <addaction name="actionSharpen"/>
-    <addaction name="separator"/>
-    <addaction name="actionEdgeDetection"/>
     <addaction name="actionThreshold"/>
    </widget>
 
@@ -97,7 +95,6 @@
     <addaction name="actionTaskImageClassification"/>
     <addaction name="actionTaskObjectDetection"/>
     <addaction name="actionTaskSemanticSegmentation"/>
-    <addaction name="actionTaskInstanceSegmentation"/>
     <addaction name="actionTaskKeyPointDetection"/>
     <addaction name="separator"/>
     <addaction name="actionTaskImageEnhancement"/>
@@ -365,6 +362,9 @@
 
   <!-- ==================== 图像菜单动作 ==================== -->
   <action name="actionGrayscale">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>灰度化(&amp;G)</string>
    </property>
@@ -373,6 +373,9 @@
    </property>
   </action>
   <action name="actionInvert">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>反色(&amp;I)</string>
    </property>
@@ -394,14 +397,6 @@
    </property>
    <property name="toolTip">
     <string>锐化图片边缘</string>
-   </property>
-  </action>
-  <action name="actionEdgeDetection">
-   <property name="text">
-    <string>边缘检测(&amp;E)</string>
-   </property>
-   <property name="toolTip">
-    <string>Canny 边缘检测</string>
    </property>
   </action>
   <action name="actionThreshold">
@@ -457,20 +452,6 @@
    </property>
    <property name="toolTip">
     <string>语义分割任务</string>
-   </property>
-  </action>
-  <action name="actionTaskInstanceSegmentation">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>实例分割(&amp;I)</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Shift+I</string>
-   </property>
-   <property name="toolTip">
-    <string>实例分割任务</string>
    </property>
   </action>
   <action name="actionTaskKeyPointDetection">

@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "../controllers/taskcontroller.h"
+#include "../controllers/parameterpanelfactory.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QDir>
@@ -429,6 +431,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     logMessage("应用程序已启动");
     logMessage("提示：使用\"文件\"菜单打开图片，或双击文件浏览器中的图片");
+    logMessage("提示：切换到\"任务\"→\"目标检测\"或\"语义分割\"可使用 YOLO 推理功能");
 }
 
 /**
@@ -806,6 +809,9 @@ void MainWindow::on_actionSaveImageAs_triggered()
         if (m_currentPixmap.save(fileName)) {
             logMessage(QString("已保存: %1").arg(fileName));
             m_currentImagePath = fileName;
+            if (m_taskController) {
+                m_taskController->setCurrentImagePath(fileName);
+            }
         } else {
             QMessageBox::warning(this, "错误", "保存失败");
         }
@@ -1145,49 +1151,89 @@ void MainWindow::on_actionShowLogOutput_triggered(bool checked)
 // ==================== 图像菜单槽函数 ====================
 
 /**
- * @brief 灰度化
+ * @brief 灰度化（可切换）
  */
-void MainWindow::on_actionGrayscale_triggered()
+void MainWindow::on_actionGrayscale_triggered(bool checked)
 {
     if (m_currentPixmap.isNull()) {
         QMessageBox::warning(this, "提示", "请先打开图片");
+        ui->actionGrayscale->setChecked(false);
         return;
     }
 
-    saveState();  // 保存当前状态到撤销栈
+    if (checked) {
+        // 应用灰度化
+        saveState();
 
-    QImage image = m_currentPixmap.toImage();
-    for (int y = 0; y < image.height(); ++y) {
-        for (int x = 0; x < image.width(); ++x) {
-            QRgb pixel = image.pixel(x, y);
-            int gray = qGray(pixel);
-            image.setPixel(x, y, qRgb(gray, gray, gray));
+        // 保存原始图片（如果还没有保存）
+        if (!m_isGrayscale && !m_isInverted) {
+            m_originalPixmap = m_currentPixmap;
+        }
+
+        QImage image = m_currentPixmap.toImage();
+        for (int y = 0; y < image.height(); ++y) {
+            for (int x = 0; x < image.width(); ++x) {
+                QRgb pixel = image.pixel(x, y);
+                int gray = qGray(pixel);
+                image.setPixel(x, y, qRgb(gray, gray, gray));
+            }
+        }
+
+        m_currentPixmap = QPixmap::fromImage(image);
+        currentImageView()->setPixmap(m_currentPixmap);
+        m_isGrayscale = true;
+        logMessage("已转换为灰度图");
+    } else {
+        // 取消灰度化 - 恢复原始图片
+        if (!m_originalPixmap.isNull()) {
+            m_currentPixmap = m_originalPixmap;
+            currentImageView()->setPixmap(m_currentPixmap);
+            m_isGrayscale = false;
+            m_isInverted = false;
+            ui->actionInvert->setChecked(false);
+            logMessage("已恢复原始图片");
         }
     }
-
-    m_currentPixmap = QPixmap::fromImage(image);
-    currentImageView()->setPixmap(m_currentPixmap);
-    logMessage("已转换为灰度图");
 }
 
 /**
- * @brief 反色
+ * @brief 反色（可切换）
  */
-void MainWindow::on_actionInvert_triggered()
+void MainWindow::on_actionInvert_triggered(bool checked)
 {
     if (m_currentPixmap.isNull()) {
         QMessageBox::warning(this, "提示", "请先打开图片");
+        ui->actionInvert->setChecked(false);
         return;
     }
 
-    saveState();  // 保存当前状态到撤销栈
+    if (checked) {
+        // 应用反色
+        saveState();
 
-    QImage image = m_currentPixmap.toImage();
-    image.invertPixels();
+        // 保存原始图片（如果还没有保存）
+        if (!m_isGrayscale && !m_isInverted) {
+            m_originalPixmap = m_currentPixmap;
+        }
 
-    m_currentPixmap = QPixmap::fromImage(image);
-    currentImageView()->setPixmap(m_currentPixmap);
-    logMessage("已反色");
+        QImage image = m_currentPixmap.toImage();
+        image.invertPixels();
+
+        m_currentPixmap = QPixmap::fromImage(image);
+        currentImageView()->setPixmap(m_currentPixmap);
+        m_isInverted = true;
+        logMessage("已反色");
+    } else {
+        // 取消反色 - 恢复原始图片
+        if (!m_originalPixmap.isNull()) {
+            m_currentPixmap = m_originalPixmap;
+            currentImageView()->setPixmap(m_currentPixmap);
+            m_isGrayscale = false;
+            m_isInverted = false;
+            ui->actionGrayscale->setChecked(false);
+            logMessage("已恢复原始图片");
+        }
+    }
 }
 
 /**
@@ -1236,25 +1282,6 @@ void MainWindow::on_actionSharpen_triggered()
         currentImageView()->setPixmap(m_currentPixmap);
         logMessage(QString("锐化处理 (强度=%1)").arg(strength));
     }
-}
-
-/**
- * @brief 边缘检测
- */
-void MainWindow::on_actionEdgeDetection_triggered()
-{
-    if (m_currentPixmap.isNull()) {
-        QMessageBox::warning(this, "提示", "请先打开图片");
-        return;
-    }
-
-    saveState();  // 保存当前状态到撤销栈
-
-    QImage image = m_currentPixmap.toImage();
-    QImage edges = sobelEdgeDetection(image);
-    m_currentPixmap = QPixmap::fromImage(edges);
-    currentImageView()->setPixmap(m_currentPixmap);
-    logMessage("Sobel边缘检测");
 }
 
 /**
@@ -1311,14 +1338,6 @@ void MainWindow::on_actionTaskObjectDetection_triggered()
 void MainWindow::on_actionTaskSemanticSegmentation_triggered()
 {
     switchTask(CVTask::SemanticSegmentation);
-}
-
-/**
- * @brief 实例分割
- */
-void MainWindow::on_actionTaskInstanceSegmentation_triggered()
-{
-    switchTask(CVTask::InstanceSegmentation);
 }
 
 /**
@@ -1857,6 +1876,9 @@ void MainWindow::onRenameFile()
         logMessage(QString("文件已重命名: %1 -> %2").arg(fileInfo.fileName(), newName));
         if (filePath == m_currentImagePath) {
             m_currentImagePath = newPath;
+            if (m_taskController) {
+                m_taskController->setCurrentImagePath(newPath);
+            }
         }
     } else {
         QMessageBox::critical(this, "重命名失败", "无法重命名文件。");
@@ -2437,51 +2459,6 @@ QImage MainWindow::sharpenImage(const QImage &image, double strength)
     return applyConvolution(image, kernel, 1);
 }
 
-/**
- * @brief Sobel边缘检测
- */
-QImage MainWindow::sobelEdgeDetection(const QImage &image)
-{
-    if (image.isNull()) {
-        return image;
-    }
-
-    QImage gray = image.convertToFormat(QImage::Format_Grayscale8);
-    QImage result(image.size(), QImage::Format_Grayscale8);
-
-    // Sobel算子
-    QVector<QVector<int>> sobelX = {
-        {-1, 0, 1},
-        {-2, 0, 2},
-        {-1, 0, 1}
-    };
-
-    QVector<QVector<int>> sobelY = {
-        {-1, -2, -1},
-        { 0,  0,  0},
-        { 1,  2,  1}
-    };
-
-    for (int y = 1; y < gray.height() - 1; ++y) {
-        for (int x = 1; x < gray.width() - 1; ++x) {
-            int gx = 0, gy = 0;
-
-            for (int ky = -1; ky <= 1; ++ky) {
-                for (int kx = -1; kx <= 1; ++kx) {
-                    int pixel = gray.pixelIndex(x + kx, y + ky);
-                    gx += pixel * sobelX[ky + 1][kx + 1];
-                    gy += pixel * sobelY[ky + 1][kx + 1];
-                }
-            }
-
-            int magnitude = static_cast<int>(sqrt(gx * gx + gy * gy));
-            result.setPixelColor(x, y, QColor(qBound(0, magnitude, 255), qBound(0, magnitude, 255), qBound(0, magnitude, 255)));
-        }
-    }
-
-    return result;
-}
-
 // ==================== 任务栏和参数面板实现 ====================
 
 /**
@@ -2492,11 +2469,19 @@ void MainWindow::setupTaskMenus()
     taskActionGroup = new QActionGroup(this);
     taskActionGroup->setExclusive(true);
 
+    // 创建任务控制器
+    m_taskController = new GenPreCVSystem::Controllers::TaskController(this);
+    m_taskController->setParameterScrollArea(paramScrollArea);
+    m_taskController->setTaskActionGroup(taskActionGroup);
+
+    // 连接任务控制器的日志信号
+    connect(m_taskController, &GenPreCVSystem::Controllers::TaskController::logMessage,
+            this, &MainWindow::logMessage);
+
     // 使用UI中的菜单动作，设置数据以便识别任务类型
     ui->actionTaskImageClassification->setData(QVariant::fromValue(static_cast<int>(CVTask::ImageClassification)));
     ui->actionTaskObjectDetection->setData(QVariant::fromValue(static_cast<int>(CVTask::ObjectDetection)));
     ui->actionTaskSemanticSegmentation->setData(QVariant::fromValue(static_cast<int>(CVTask::SemanticSegmentation)));
-    ui->actionTaskInstanceSegmentation->setData(QVariant::fromValue(static_cast<int>(CVTask::InstanceSegmentation)));
     ui->actionTaskKeyPointDetection->setData(QVariant::fromValue(static_cast<int>(CVTask::KeyPointDetection)));
     ui->actionTaskImageEnhancement->setData(QVariant::fromValue(static_cast<int>(CVTask::ImageEnhancement)));
     ui->actionTaskImageDenoising->setData(QVariant::fromValue(static_cast<int>(CVTask::ImageDenoising)));
@@ -2506,7 +2491,6 @@ void MainWindow::setupTaskMenus()
     taskActionGroup->addAction(ui->actionTaskImageClassification);
     taskActionGroup->addAction(ui->actionTaskObjectDetection);
     taskActionGroup->addAction(ui->actionTaskSemanticSegmentation);
-    taskActionGroup->addAction(ui->actionTaskInstanceSegmentation);
     taskActionGroup->addAction(ui->actionTaskKeyPointDetection);
     taskActionGroup->addAction(ui->actionTaskImageEnhancement);
     taskActionGroup->addAction(ui->actionTaskImageDenoising);
@@ -2529,20 +2513,7 @@ void MainWindow::switchTask(CVTask task)
 {
     m_currentTask = task;
     updateParameterPanel(task);
-
-    QString taskName;
-    switch (task) {
-        case CVTask::ImageClassification: taskName = "图像分类"; break;
-        case CVTask::ObjectDetection: taskName = "目标检测"; break;
-        case CVTask::SemanticSegmentation: taskName = "语义分割"; break;
-        case CVTask::InstanceSegmentation: taskName = "实例分割"; break;
-        case CVTask::KeyPointDetection: taskName = "关键点检测"; break;
-        case CVTask::ImageEnhancement: taskName = "图像增强"; break;
-        case CVTask::ImageDenoising: taskName = "图像去噪"; break;
-        case CVTask::EdgeDetection: taskName = "边缘检测"; break;
-    }
-
-    logMessage(QString("已切换任务: %1").arg(taskName));
+    // 日志消息由 TaskController 发出（已连接到 MainWindow::logMessage）
 }
 
 /**
@@ -2550,39 +2521,11 @@ void MainWindow::switchTask(CVTask task)
  */
 void MainWindow::updateParameterPanel(CVTask task)
 {
-    clearParameterPanel();
-
-    QWidget *content = nullptr;
-    switch (task) {
-        case CVTask::ImageClassification:
-            content = createImageClassificationParams();
-            break;
-        case CVTask::ObjectDetection:
-            content = createObjectDetectionParams();
-            break;
-        case CVTask::SemanticSegmentation:
-            content = createSemanticSegmentationParams();
-            break;
-        case CVTask::InstanceSegmentation:
-            content = createInstanceSegmentationParams();
-            break;
-        case CVTask::KeyPointDetection:
-            content = createKeyPointDetectionParams();
-            break;
-        case CVTask::ImageEnhancement:
-            content = createImageEnhancementParams();
-            break;
-        case CVTask::ImageDenoising:
-            content = createImageDenoisingParams();
-            break;
-        case CVTask::EdgeDetection:
-            content = createEdgeDetectionParams();
-            break;
-    }
-
-    if (content) {
-        paramScrollArea->setWidget(content);
-        paramScrollArea->setWidgetResizable(true);
+    // 委托给 TaskController 处理（包含 YOLO 服务控件和信号连接）
+    if (m_taskController) {
+        // 将本地 CVTask 转换为 Models::CVTask
+        auto modelsTask = static_cast<GenPreCVSystem::Models::CVTask>(static_cast<int>(task));
+        m_taskController->switchTask(modelsTask);
     }
 }
 
@@ -2763,57 +2706,6 @@ QWidget* MainWindow::createSemanticSegmentationParams()
     lossLayout->addWidget(new QLabel("损失类型:", widget));
     lossLayout->addWidget(lossCombo);
     layout->addWidget(lossGroup);
-
-    layout->addStretch();
-    return widget;
-}
-
-/**
- * @brief 创建实例分割参数面板
- */
-QWidget* MainWindow::createInstanceSegmentationParams()
-{
-    QWidget *widget = new QWidget();
-    QVBoxLayout *layout = new QVBoxLayout(widget);
-    layout->setContentsMargins(10, 10, 10, 10);
-    layout->setSpacing(10);
-
-    // 模型选择
-    QGroupBox *modelGroup = new QGroupBox("模型设置", widget);
-    QFormLayout *modelLayout = new QFormLayout(modelGroup);
-    QComboBox *modelCombo = new QComboBox(widget);
-    modelCombo->addItems({"Mask R-CNN", "Cascade Mask R-CNN", "SOLOv2"});
-    modelLayout->addRow("模型:", modelCombo);
-
-    QSpinBox *backbone = new QSpinBox(widget);
-    backbone->setRange(18, 101);
-    backbone->setSingleStep(18);
-    backbone->setValue(50);
-    modelLayout->addRow("Backbone层数:", backbone);
-
-    QSpinBox *roi = new QSpinBox(widget);
-    roi->setRange(32, 1024);
-    roi->setValue(256);
-    modelLayout->addRow("ROI尺寸:", roi);
-
-    layout->addWidget(modelGroup);
-
-    // 检测参数
-    QGroupBox *detectGroup = new QGroupBox("检测参数", widget);
-    QFormLayout *detectLayout = new QFormLayout(detectGroup);
-
-    QDoubleSpinBox *confSpinBox = new QDoubleSpinBox(widget);
-    confSpinBox->setRange(0.0, 1.0);
-    confSpinBox->setDecimals(2);
-    confSpinBox->setValue(0.7);
-    detectLayout->addRow("置信度阈值:", confSpinBox);
-
-    QSpinBox *minSize = new QSpinBox(widget);
-    minSize->setRange(1, 100);
-    minSize->setValue(10);
-    detectLayout->addRow("最小实例尺寸:", minSize);
-
-    layout->addWidget(detectGroup);
 
     layout->addStretch();
     return widget;
@@ -3112,5 +3004,10 @@ void MainWindow::updateCurrentTabRef()
         m_currentPixmap = QPixmap();
         m_undoStack.clear();
         m_redoStack.clear();
+    }
+
+    // 通知任务控制器当前图像路径变化
+    if (m_taskController) {
+        m_taskController->setCurrentImagePath(m_currentImagePath);
     }
 }

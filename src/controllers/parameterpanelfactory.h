@@ -29,7 +29,6 @@ private:
     static QWidget* createImageClassificationParams();
     static QWidget* createObjectDetectionParams();
     static QWidget* createSemanticSegmentationParams();
-    static QWidget* createInstanceSegmentationParams();
     static QWidget* createKeyPointDetectionParams();
     static QWidget* createImageEnhancementParams();
     static QWidget* createImageDenoisingParams();

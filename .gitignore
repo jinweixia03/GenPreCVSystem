@@ -119,3 +119,18 @@ CMakeUserPresets.json
 # Backup files
 *~
 *.autosave
+
+# Model directories
+/src/model/
+
+# Model files in resources (keep README.md)
+/src/resources/models/**/*.pt
+/src/resources/models/**/*.onnx
+/src/resources/models/**/*.engine
+/src/resources/models/**/*.bin
+/src/resources/models/**/*.pth
+!/src/resources/models/README.md
+
+# Third-party libraries
+/third_party/libtorch/
+/third_party/*.zip

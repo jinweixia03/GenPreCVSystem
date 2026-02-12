@@ -1,5 +1,9 @@
 #include "imageview.h"
 #include <QScrollBar>
+#include <QPen>
+#include <QBrush>
+#include <QFont>
+#include <QTextDocument>
 
 namespace GenPreCVSystem {
 namespace Views {
@@ -57,6 +61,7 @@ void ImageView::setPixmap(const QPixmap &pixmap)
 
 void ImageView::clearImage()
 {
+    clearDetections();
     m_scene->clear();
     m_pixmapItem = nullptr;
     m_scaleFactor = 1.0;
@@ -187,6 +192,188 @@ void ImageView::resizeEvent(QResizeEvent *event)
     // 窗口大小改变时重新适应窗口
     if (m_pixmapItem) {
         fitToWindow();
+    }
+}
+
+void ImageView::setDetections(const QVector<DetectionOverlay> &detections, bool showLabels)
+{
+    // 先清除现有的检测结果
+    clearDetections();
+
+    if (!m_scene || detections.isEmpty()) {
+        return;
+    }
+
+    // 预定义的颜色列表（用于不同类别）
+    QVector<QColor> colors = {
+        QColor(255, 0, 0, 200),     // 红
+        QColor(0, 255, 0, 200),     // 绿
+        QColor(0, 0, 255, 200),     // 蓝
+        QColor(255, 255, 0, 200),   // 黄
+        QColor(255, 0, 255, 200),   // 洋红
+        QColor(0, 255, 255, 200),   // 青
+        QColor(255, 128, 0, 200),   // 橙
+        QColor(128, 0, 255, 200),   // 紫
+    };
+
+    QFont labelFont("Arial", 10, QFont::Bold);
+
+    for (int i = 0; i < detections.size(); ++i) {
+        const DetectionOverlay &det = detections[i];
+
+        // 选择颜色
+        QColor color = det.color.isValid() ? det.color : colors[i % colors.size()];
+
+        // 创建边界框
+        QGraphicsRectItem *rectItem = m_scene->addRect(
+            det.x, det.y, det.width, det.height,
+            QPen(color, 2),
+            QBrush(Qt::NoBrush)
+        );
+        rectItem->setZValue(1);  // 确保在图片上方
+        m_detectionBoxes.append(rectItem);
+
+        // 如果需要显示标签
+        if (showLabels) {
+            // 创建标签文本
+            QString labelText = QString("%1 (%2%)")
+                .arg(det.label)
+                .arg(static_cast<int>(det.confidence * 100));
+
+            QGraphicsTextItem *textItem = m_scene->addText(labelText, labelFont);
+            textItem->setDefaultTextColor(Qt::white);
+            textItem->setZValue(2);
+
+            // 设置标签背景
+            QTextDocument *doc = textItem->document();
+            doc->setTextWidth(textItem->boundingRect().width());
+            textItem->document()->setDefaultStyleSheet(
+                "body { background-color: rgba(0,0,0,0.6); padding: 2px; }"
+            );
+
+            // 定位标签（在边界框上方）
+            qreal textX = det.x;
+            qreal textY = det.y - textItem->boundingRect().height();
+            if (textY < 0) {
+                textY = det.y;  // 如果超出上方，放在框内
+            }
+            textItem->setPos(textX, textY);
+            m_detectionLabels.append(textItem);
+        }
+    }
+}
+
+void ImageView::clearDetections()
+{
+    // 删除所有边界框
+    for (QGraphicsRectItem *item : m_detectionBoxes) {
+        m_scene->removeItem(item);
+        delete item;
+    }
+    m_detectionBoxes.clear();
+
+    // 删除所有标签
+    for (QGraphicsTextItem *item : m_detectionLabels) {
+        m_scene->removeItem(item);
+        delete item;
+    }
+    m_detectionLabels.clear();
+
+    // 删除所有掩码多边形
+    for (QGraphicsPolygonItem *item : m_maskPolygons) {
+        m_scene->removeItem(item);
+        delete item;
+    }
+    m_maskPolygons.clear();
+}
+
+void ImageView::setSegmentationOverlays(const QVector<DetectionOverlay> &detections,
+                                         int maskAlpha, bool showBoxes, bool showLabels)
+{
+    // 先清除现有的检测结果
+    clearDetections();
+
+    if (!m_scene || detections.isEmpty()) {
+        return;
+    }
+
+    // 预定义的颜色列表（用于不同类别）
+    QVector<QColor> colors = {
+        QColor(255, 0, 0),     // 红
+        QColor(0, 255, 0),     // 绿
+        QColor(0, 0, 255),     // 蓝
+        QColor(255, 255, 0),   // 黄
+        QColor(255, 0, 255),   // 洋红
+        QColor(0, 255, 255),   // 青
+        QColor(255, 128, 0),   // 橙
+        QColor(128, 0, 255),   // 紫
+    };
+
+    QFont labelFont("Arial", 10, QFont::Bold);
+
+    for (int i = 0; i < detections.size(); ++i) {
+        const DetectionOverlay &det = detections[i];
+
+        // 选择颜色
+        QColor color = det.color.isValid() ? det.color : colors[i % colors.size()];
+
+        // 绘制掩码多边形（如果有）
+        if (!det.maskPolygon.isEmpty()) {
+            QPolygonF polygon;
+            for (const QPointF &pt : det.maskPolygon) {
+                polygon << pt;
+            }
+
+            // 计算带透明度的填充颜色
+            QColor fillColor = color;
+            fillColor.setAlpha(static_cast<int>(maskAlpha * 2.55));  // 0-100 转换为 0-255
+
+            QGraphicsPolygonItem *polyItem = m_scene->addPolygon(
+                polygon,
+                QPen(color, 2),
+                QBrush(fillColor)
+            );
+            polyItem->setZValue(0.5);  // 在图片上方，但在边界框下方
+            m_maskPolygons.append(polyItem);
+        }
+
+        // 如果需要显示边界框
+        if (showBoxes) {
+            QGraphicsRectItem *rectItem = m_scene->addRect(
+                det.x, det.y, det.width, det.height,
+                QPen(color, 2),
+                QBrush(Qt::NoBrush)
+            );
+            rectItem->setZValue(1);
+            m_detectionBoxes.append(rectItem);
+        }
+
+        // 如果需要显示标签
+        if (showLabels) {
+            QString labelText = QString("%1 (%2%)")
+                .arg(det.label)
+                .arg(static_cast<int>(det.confidence * 100));
+
+            QGraphicsTextItem *textItem = m_scene->addText(labelText, labelFont);
+            textItem->setDefaultTextColor(Qt::white);
+            textItem->setZValue(2);
+
+            // 设置标签背景
+            QTextDocument *doc = textItem->document();
+            doc->setTextWidth(textItem->boundingRect().width());
+            textItem->document()->setDefaultStyleSheet(
+                "body { background-color: rgba(0,0,0,0.6); padding: 2px; }"
+            );
+
+            // 定位标签
+            qreal textX = det.x;
+            qreal textY = det.y - textItem->boundingRect().height();
+            if (textY < 0) {
+                textY = det.y;
+            }
+            textItem->setPos(textX, textY);
+            m_detectionLabels.append(textItem);
+        }
     }
 }
 

@@ -11,7 +11,6 @@ enum class CVTask {
     ImageClassification,      ///< 图像分类
     ObjectDetection,          ///< 目标检测
     SemanticSegmentation,     ///< 语义分割
-    InstanceSegmentation,     ///< 实例分割
     KeyPointDetection,        ///< 关键点检测
     ImageEnhancement,         ///< 图像增强
     ImageDenoising,           ///< 图像去噪
@@ -29,7 +28,6 @@ inline QString getTaskName(CVTask task)
         case CVTask::ImageClassification: return "图像分类";
         case CVTask::ObjectDetection: return "目标检测";
         case CVTask::SemanticSegmentation: return "语义分割";
-        case CVTask::InstanceSegmentation: return "实例分割";
         case CVTask::KeyPointDetection: return "关键点检测";
         case CVTask::ImageEnhancement: return "图像增强";
         case CVTask::ImageDenoising: return "图像去噪";

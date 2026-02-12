@@ -4,13 +4,32 @@
 #include <QGraphicsView>
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
+#include <QGraphicsRectItem>
+#include <QGraphicsTextItem>
+#include <QGraphicsPolygonItem>
 #include <QPixmap>
 #include <QWheelEvent>
 #include <QMouseEvent>
 #include <QResizeEvent>
+#include <QVector>
+#include <QPointF>
 
 namespace GenPreCVSystem {
 namespace Views {
+
+/**
+ * @brief 检测结果结构（用于显示）
+ */
+struct DetectionOverlay {
+    int x;
+    int y;
+    int width;
+    int height;
+    float confidence;
+    QString label;
+    QColor color;
+    QVector<QPointF> maskPolygon;  // 分割掩码多边形
+};
 
 /**
  * @brief 图片显示视图
@@ -62,6 +81,28 @@ public:
      */
     QPixmap pixmap() const;
 
+    /**
+     * @brief 设置检测结果覆盖层
+     * @param detections 检测结果列表
+     * @param showLabels 是否显示标签
+     */
+    void setDetections(const QVector<DetectionOverlay> &detections, bool showLabels = true);
+
+    /**
+     * @brief 设置分割结果覆盖层 (带掩码)
+     * @param detections 检测结果列表
+     * @param maskAlpha 掩码透明度 (0-100)
+     * @param showBoxes 是否显示边界框
+     * @param showLabels 是否显示标签
+     */
+    void setSegmentationOverlays(const QVector<DetectionOverlay> &detections,
+                                  int maskAlpha = 50, bool showBoxes = false, bool showLabels = true);
+
+    /**
+     * @brief 清除检测结果覆盖层
+     */
+    void clearDetections();
+
 signals:
     /**
      * @brief 图片缩放比例改变信号
@@ -81,6 +122,11 @@ private:
     double m_scaleFactor;
     bool m_dragging;
     QPoint m_lastPanPoint;
+
+    // 检测结果覆盖层
+    QVector<QGraphicsRectItem *> m_detectionBoxes;
+    QVector<QGraphicsTextItem *> m_detectionLabels;
+    QVector<QGraphicsPolygonItem *> m_maskPolygons;  // 分割掩码多边形
 };
 
 } // namespace Views

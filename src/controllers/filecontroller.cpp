@@ -1,4 +1,5 @@
 #include "filecontroller.h"
+#include "appsettings.h"
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QInputDialog>
@@ -25,15 +26,17 @@ FileController::FileController(QWidget *parentWidget, QObject *parent)
 
 QString FileController::openImage()
 {
+    QString defaultDir = Utils::AppSettings::defaultOpenDirectory();
     QString fileName = QFileDialog::getOpenFileName(
-        m_parentWidget, "打开图片文件", "", Utils::FileUtils::getImageFileFilter()
+        m_parentWidget, "打开图片文件", defaultDir, Utils::FileUtils::getImageFileFilter()
     );
     return fileName;
 }
 
 QString FileController::openFolder()
 {
-    QString dirPath = QFileDialog::getExistingDirectory(m_parentWidget, "打开图片文件夹");
+    QString defaultDir = Utils::AppSettings::defaultOpenDirectory();
+    QString dirPath = QFileDialog::getExistingDirectory(m_parentWidget, "打开图片文件夹", defaultDir);
     return dirPath;
 }
 
@@ -88,8 +91,9 @@ QString FileController::saveImageAs(const QPixmap &pixmap)
         return QString();
     }
 
+    QString defaultDir = Utils::AppSettings::defaultExportDirectory();
     QString fileName = QFileDialog::getSaveFileName(
-        m_parentWidget, "另存为", "", Utils::FileUtils::getImageFileFilter()
+        m_parentWidget, "另存为", defaultDir, Utils::FileUtils::getImageFileFilter()
     );
 
     if (!fileName.isEmpty()) {
@@ -113,9 +117,10 @@ QString FileController::exportImage(const QPixmap &pixmap, const QString &origin
         return QString();
     }
 
+    QString defaultDir = Utils::AppSettings::defaultExportDirectory();
     QString defaultName = originalPath.isEmpty()
-        ? QString("exported_%1.png").arg(QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss"))
-        : QFileInfo(originalPath).baseName() + "_exported.png";
+        ? QString("%1/exported_%2.png").arg(defaultDir).arg(QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss"))
+        : QString("%1/%2_exported.png").arg(defaultDir).arg(QFileInfo(originalPath).baseName());
 
     QString fileName = QFileDialog::getSaveFileName(
         m_parentWidget, "导出图片", defaultName, Utils::FileUtils::getImageFileFilter()

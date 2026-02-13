@@ -146,6 +146,11 @@ public:
     bool isModelLoaded() const { return m_modelLoaded; }
 
     /**
+     * @brief 获取当前加载的模型路径
+     */
+    QString modelPath() const { return m_modelPath; }
+
+    /**
      * @brief 扫描系统中所有可用的 Python 环境
      * @return 环境列表
      */

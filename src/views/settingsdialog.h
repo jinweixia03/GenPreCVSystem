@@ -2,14 +2,11 @@
 #define SETTINGSDIALOG_H
 
 #include <QDialog>
-#include <QTabWidget>
 
 class QLineEdit;
 class QSpinBox;
-class QDoubleSpinBox;
 class QCheckBox;
 class QComboBox;
-class QPushButton;
 
 namespace GenPreCVSystem {
 namespace Views {
@@ -17,7 +14,7 @@ namespace Views {
 /**
  * @brief 设置对话框
  *
- * 提供应用程序设置的三标签页界面：通用、YOLO、导出
+ * 提供常规设置选项
  */
 class SettingsDialog : public QDialog
 {
@@ -42,38 +39,22 @@ private slots:
 
 private:
     void setupUI();
-    QWidget* createGeneralTab();
-    QWidget* createYOLOTab();
-    QWidget* createExportTab();
+    void applyStyles();
     void loadSettings();
     void saveSettings();
-    void applyStyles();
 
-    QTabWidget *m_tabWidget;
-
-    // 通用标签页
+    // 目录设置
     QLineEdit *m_editOpenDir;
     QLineEdit *m_editExportDir;
-    QSpinBox *m_spinMaxRecent;
+
+    // 常规设置
+    QSpinBox *m_spinMaxRecentFiles;
     QCheckBox *m_chkAutoSave;
 
-    // YOLO 标签页
-    QLineEdit *m_editPythonPath;
-    QPushButton *m_btnBrowsePython;
-    QDoubleSpinBox *m_spinConfThreshold;
-    QDoubleSpinBox *m_spinIOUThreshold;
-    QSpinBox *m_spinImageSize;
-
-    // 导出标签页
+    // 导出设置
     QComboBox *m_comboExportFormat;
     QCheckBox *m_chkIncludeTimestamp;
     QCheckBox *m_chkIncludeMetadata;
-
-    // 按钮
-    QPushButton *m_btnOK;
-    QPushButton *m_btnCancel;
-    QPushButton *m_btnApply;
-    QPushButton *m_btnReset;
 };
 
 } // namespace Views

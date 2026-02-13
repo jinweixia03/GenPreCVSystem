@@ -5,26 +5,31 @@
 #include <QHBoxLayout>
 #include <QFormLayout>
 #include <QLabel>
-#include <QGroupBox>
-#include <QFileDialog>
-#include <QDialogButtonBox>
 #include <QPushButton>
 #include <QLineEdit>
 #include <QSpinBox>
-#include <QDoubleSpinBox>
 #include <QCheckBox>
 #include <QComboBox>
-#include <QTabWidget>
+#include <QFileDialog>
+#include <QGroupBox>
+#include <QDialogButtonBox>
 
 namespace GenPreCVSystem {
 namespace Views {
 
 SettingsDialog::SettingsDialog(QWidget *parent)
     : QDialog(parent)
+    , m_editOpenDir(nullptr)
+    , m_editExportDir(nullptr)
+    , m_spinMaxRecentFiles(nullptr)
+    , m_chkAutoSave(nullptr)
+    , m_comboExportFormat(nullptr)
+    , m_chkIncludeTimestamp(nullptr)
+    , m_chkIncludeMetadata(nullptr)
 {
     setupUI();
-    loadSettings();
     applyStyles();
+    loadSettings();
 }
 
 SettingsDialog::~SettingsDialog()
@@ -34,258 +39,191 @@ SettingsDialog::~SettingsDialog()
 void SettingsDialog::setupUI()
 {
     setWindowTitle(tr("设置"));
-    setMinimumSize(500, 400);
+    setMinimumSize(450, 400);
+    resize(500, 450);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(10);
-    mainLayout->setContentsMargins(15, 15, 15, 15);
+    mainLayout->setSpacing(15);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
 
-    // 创建标签页
-    m_tabWidget = new QTabWidget(this);
-    m_tabWidget->addTab(createGeneralTab(), tr("通用"));
-    m_tabWidget->addTab(createYOLOTab(), tr("YOLO"));
-    m_tabWidget->addTab(createExportTab(), tr("导出"));
-    mainLayout->addWidget(m_tabWidget);
-
-    // 创建按钮
-    QHBoxLayout *buttonLayout = new QHBoxLayout();
-    buttonLayout->addStretch();
-
-    m_btnReset = new QPushButton(tr("恢复默认"), this);
-    m_btnOK = new QPushButton(tr("确定"), this);
-    m_btnCancel = new QPushButton(tr("取消"), this);
-    m_btnApply = new QPushButton(tr("应用"), this);
-
-    m_btnOK->setDefault(true);
-
-    buttonLayout->addWidget(m_btnReset);
-    buttonLayout->addSpacing(20);
-    buttonLayout->addWidget(m_btnOK);
-    buttonLayout->addWidget(m_btnCancel);
-    buttonLayout->addWidget(m_btnApply);
-
-    mainLayout->addLayout(buttonLayout);
-
-    // 连接信号
-    connect(m_btnOK, &QPushButton::clicked, this, &SettingsDialog::onAccept);
-    connect(m_btnCancel, &QPushButton::clicked, this, &QDialog::reject);
-    connect(m_btnApply, &QPushButton::clicked, this, &SettingsDialog::onApply);
-    connect(m_btnReset, &QPushButton::clicked, this, &SettingsDialog::onResetDefaults);
-}
-
-QWidget* SettingsDialog::createGeneralTab()
-{
-    QWidget *tab = new QWidget(this);
-    QVBoxLayout *layout = new QVBoxLayout(tab);
-    layout->setSpacing(15);
-
-    // 默认目录组
-    QGroupBox *dirGroup = new QGroupBox(tr("默认目录"), tab);
+    // ========== 目录设置组 ==========
+    QGroupBox *dirGroup = new QGroupBox(tr("目录设置"), this);
     QFormLayout *dirLayout = new QFormLayout(dirGroup);
+    dirLayout->setSpacing(10);
 
-    // 打开目录
+    // 默认打开目录
     QWidget *openDirWidget = new QWidget();
     QHBoxLayout *openDirLayout = new QHBoxLayout(openDirWidget);
     openDirLayout->setContentsMargins(0, 0, 0, 0);
     m_editOpenDir = new QLineEdit();
+    m_editOpenDir->setPlaceholderText(tr("选择默认打开目录"));
     QPushButton *btnBrowseOpen = new QPushButton(tr("浏览..."));
+    btnBrowseOpen->setFixedWidth(70);
+    connect(btnBrowseOpen, &QPushButton::clicked, this, &SettingsDialog::onBrowseOpenDirectory);
     openDirLayout->addWidget(m_editOpenDir);
     openDirLayout->addWidget(btnBrowseOpen);
-    dirLayout->addRow(tr("打开目录:"), openDirWidget);
-    connect(btnBrowseOpen, &QPushButton::clicked, this, &SettingsDialog::onBrowseOpenDirectory);
+    dirLayout->addRow(tr("默认打开目录:"), openDirWidget);
 
-    // 导出目录
+    // 默认导出目录
     QWidget *exportDirWidget = new QWidget();
     QHBoxLayout *exportDirLayout = new QHBoxLayout(exportDirWidget);
     exportDirLayout->setContentsMargins(0, 0, 0, 0);
     m_editExportDir = new QLineEdit();
+    m_editExportDir->setPlaceholderText(tr("选择默认导出目录"));
     QPushButton *btnBrowseExport = new QPushButton(tr("浏览..."));
+    btnBrowseExport->setFixedWidth(70);
+    connect(btnBrowseExport, &QPushButton::clicked, this, &SettingsDialog::onBrowseExportDirectory);
     exportDirLayout->addWidget(m_editExportDir);
     exportDirLayout->addWidget(btnBrowseExport);
-    dirLayout->addRow(tr("导出目录:"), exportDirWidget);
-    connect(btnBrowseExport, &QPushButton::clicked, this, &SettingsDialog::onBrowseExportDirectory);
+    dirLayout->addRow(tr("默认导出目录:"), exportDirWidget);
 
-    layout->addWidget(dirGroup);
+    mainLayout->addWidget(dirGroup);
 
-    // 其他设置组
-    QGroupBox *otherGroup = new QGroupBox(tr("其他设置"), tab);
-    QFormLayout *otherLayout = new QFormLayout(otherGroup);
+    // ========== 常规设置组 ==========
+    QGroupBox *generalGroup = new QGroupBox(tr("常规设置"), this);
+    QFormLayout *generalLayout = new QFormLayout(generalGroup);
+    generalLayout->setSpacing(10);
 
-    m_spinMaxRecent = new QSpinBox();
-    m_spinMaxRecent->setRange(1, 20);
-    m_spinMaxRecent->setValue(10);
-    otherLayout->addRow(tr("最近文件数量:"), m_spinMaxRecent);
+    // 最近文件数量
+    m_spinMaxRecentFiles = new QSpinBox();
+    m_spinMaxRecentFiles->setRange(1, 20);
+    m_spinMaxRecentFiles->setValue(10);
+    generalLayout->addRow(tr("最近文件数量:"), m_spinMaxRecentFiles);
 
+    // 自动保存结果
     m_chkAutoSave = new QCheckBox(tr("自动保存检测结果"));
-    otherLayout->addRow("", m_chkAutoSave);
+    generalLayout->addRow(QString(), m_chkAutoSave);
 
-    layout->addWidget(otherGroup);
-    layout->addStretch();
+    mainLayout->addWidget(generalGroup);
 
-    return tab;
-}
+    // ========== 导出设置组 ==========
+    QGroupBox *exportGroup = new QGroupBox(tr("导出设置"), this);
+    QFormLayout *exportLayout = new QFormLayout(exportGroup);
+    exportLayout->setSpacing(10);
 
-QWidget* SettingsDialog::createYOLOTab()
-{
-    QWidget *tab = new QWidget(this);
-    QVBoxLayout *layout = new QVBoxLayout(tab);
-    layout->setSpacing(15);
-
-    // Python 环境组
-    QGroupBox *pythonGroup = new QGroupBox(tr("Python 环境"), tab);
-    QFormLayout *pythonLayout = new QFormLayout(pythonGroup);
-
-    QWidget *pythonWidget = new QWidget();
-    QHBoxLayout *pythonHLayout = new QHBoxLayout(pythonWidget);
-    pythonHLayout->setContentsMargins(0, 0, 0, 0);
-    m_editPythonPath = new QLineEdit();
-    m_btnBrowsePython = new QPushButton(tr("浏览..."));
-    pythonHLayout->addWidget(m_editPythonPath);
-    pythonHLayout->addWidget(m_btnBrowsePython);
-    pythonLayout->addRow(tr("Python 路径:"), pythonWidget);
-
-    connect(m_btnBrowsePython, &QPushButton::clicked, [this]() {
-        QString path = QFileDialog::getOpenFileName(this, tr("选择 Python 可执行文件"),
-                                                     m_editPythonPath->text(),
-                                                     "Python (python.exe python)");
-        if (!path.isEmpty()) {
-            m_editPythonPath->setText(path);
-        }
-    });
-
-    layout->addWidget(pythonGroup);
-
-    // 检测参数组
-    QGroupBox *paramsGroup = new QGroupBox(tr("检测参数"), tab);
-    QFormLayout *paramsLayout = new QFormLayout(paramsGroup);
-
-    m_spinConfThreshold = new QDoubleSpinBox();
-    m_spinConfThreshold->setRange(0.01, 1.0);
-    m_spinConfThreshold->setSingleStep(0.05);
-    m_spinConfThreshold->setDecimals(2);
-    paramsLayout->addRow(tr("置信度阈值:"), m_spinConfThreshold);
-
-    m_spinIOUThreshold = new QDoubleSpinBox();
-    m_spinIOUThreshold->setRange(0.01, 1.0);
-    m_spinIOUThreshold->setSingleStep(0.05);
-    m_spinIOUThreshold->setDecimals(2);
-    paramsLayout->addRow(tr("IOU 阈值:"), m_spinIOUThreshold);
-
-    m_spinImageSize = new QSpinBox();
-    m_spinImageSize->setRange(128, 2048);
-    m_spinImageSize->setSingleStep(64);
-    paramsLayout->addRow(tr("图像尺寸:"), m_spinImageSize);
-
-    layout->addWidget(paramsGroup);
-    layout->addStretch();
-
-    return tab;
-}
-
-QWidget* SettingsDialog::createExportTab()
-{
-    QWidget *tab = new QWidget(this);
-    QVBoxLayout *layout = new QVBoxLayout(tab);
-    layout->setSpacing(15);
-
-    // 导出格式组
-    QGroupBox *formatGroup = new QGroupBox(tr("导出格式"), tab);
-    QFormLayout *formatLayout = new QFormLayout(formatGroup);
-
+    // 导出格式
     m_comboExportFormat = new QComboBox();
-    m_comboExportFormat->addItem("JSON", "JSON");
-    m_comboExportFormat->addItem("CSV", "CSV");
-    formatLayout->addRow(tr("默认格式:"), m_comboExportFormat);
+    m_comboExportFormat->addItem(tr("JSON"), "JSON");
+    m_comboExportFormat->addItem(tr("CSV"), "CSV");
+    exportLayout->addRow(tr("导出格式:"), m_comboExportFormat);
 
-    layout->addWidget(formatGroup);
+    // 包含时间戳
+    m_chkIncludeTimestamp = new QCheckBox(tr("导出时包含时间戳"));
+    exportLayout->addRow(QString(), m_chkIncludeTimestamp);
 
-    // 导出选项组
-    QGroupBox *optionsGroup = new QGroupBox(tr("导出选项"), tab);
-    QVBoxLayout *optionsLayout = new QVBoxLayout(optionsGroup);
+    // 包含元数据
+    m_chkIncludeMetadata = new QCheckBox(tr("导出时包含元数据"));
+    exportLayout->addRow(QString(), m_chkIncludeMetadata);
 
-    m_chkIncludeTimestamp = new QCheckBox(tr("在文件名中包含时间戳"));
-    optionsLayout->addWidget(m_chkIncludeTimestamp);
+    mainLayout->addWidget(exportGroup);
 
-    m_chkIncludeMetadata = new QCheckBox(tr("包含元数据（图像路径、模型信息等）"));
-    optionsLayout->addWidget(m_chkIncludeMetadata);
+    mainLayout->addStretch();
 
-    layout->addWidget(optionsGroup);
-    layout->addStretch();
+    // ========== 按钮区域 ==========
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Apply | QDialogButtonBox::Reset | QDialogButtonBox::Cancel);
+    buttonBox->button(QDialogButtonBox::Ok)->setText(tr("确定"));
+    buttonBox->button(QDialogButtonBox::Apply)->setText(tr("应用"));
+    buttonBox->button(QDialogButtonBox::Reset)->setText(tr("恢复默认"));
+    buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("取消"));
 
-    return tab;
-}
+    connect(buttonBox, &QDialogButtonBox::accepted, this, &SettingsDialog::onAccept);
+    connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    connect(buttonBox->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
+    connect(buttonBox->button(QDialogButtonBox::Reset), &QPushButton::clicked, this, &SettingsDialog::onResetDefaults);
 
-void SettingsDialog::loadSettings()
-{
-    // 通用设置
-    m_editOpenDir->setText(Utils::AppSettings::defaultOpenDirectory());
-    m_editExportDir->setText(Utils::AppSettings::defaultExportDirectory());
-    m_spinMaxRecent->setValue(Utils::AppSettings::maxRecentFiles());
-    m_chkAutoSave->setChecked(Utils::AppSettings::autoSaveResults());
-
-    // YOLO 设置
-    m_editPythonPath->setText(Utils::AppSettings::pythonEnvironment());
-    m_spinConfThreshold->setValue(Utils::AppSettings::defaultConfThreshold());
-    m_spinIOUThreshold->setValue(Utils::AppSettings::defaultIOUThreshold());
-    m_spinImageSize->setValue(Utils::AppSettings::defaultImageSize());
-
-    // 导出设置
-    QString format = Utils::AppSettings::exportFormat();
-    int index = m_comboExportFormat->findData(format);
-    if (index >= 0) {
-        m_comboExportFormat->setCurrentIndex(index);
-    }
-    m_chkIncludeTimestamp->setChecked(Utils::AppSettings::includeTimestamp());
-    m_chkIncludeMetadata->setChecked(Utils::AppSettings::includeMetadata());
-}
-
-void SettingsDialog::saveSettings()
-{
-    // 通用设置
-    Utils::AppSettings::setDefaultOpenDirectory(m_editOpenDir->text());
-    Utils::AppSettings::setDefaultExportDirectory(m_editExportDir->text());
-    Utils::AppSettings::setMaxRecentFiles(m_spinMaxRecent->value());
-    Utils::AppSettings::setAutoSaveResults(m_chkAutoSave->isChecked());
-
-    // YOLO 设置
-    Utils::AppSettings::setPythonEnvironment(m_editPythonPath->text());
-    Utils::AppSettings::setDefaultConfThreshold(static_cast<float>(m_spinConfThreshold->value()));
-    Utils::AppSettings::setDefaultIOUThreshold(static_cast<float>(m_spinIOUThreshold->value()));
-    Utils::AppSettings::setDefaultImageSize(m_spinImageSize->value());
-
-    // 导出设置
-    Utils::AppSettings::setExportFormat(m_comboExportFormat->currentData().toString());
-    Utils::AppSettings::setIncludeTimestamp(m_chkIncludeTimestamp->isChecked());
-    Utils::AppSettings::setIncludeMetadata(m_chkIncludeMetadata->isChecked());
+    mainLayout->addWidget(buttonBox);
 }
 
 void SettingsDialog::applyStyles()
 {
     setStyleSheet(
         "QDialog { background-color: #1e1e1e; color: #cccccc; }"
-        "QTabWidget::pane { border: 1px solid #3e3e42; background-color: #252526; }"
-        "QTabBar::tab { background-color: #2d2d30; color: #cccccc; padding: 8px 16px; border: 1px solid #3e3e42; }"
-        "QTabBar::tab:selected { background-color: #252526; border-bottom-color: #252526; }"
-        "QTabBar::tab:hover { background-color: #3e3e42; }"
-        "QGroupBox { border: 1px solid #3e3e42; border-radius: 4px; margin-top: 8px; padding-top: 8px; color: #cccccc; }"
-        "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }"
         "QLabel { color: #cccccc; }"
-        "QLineEdit { background-color: #3c3c3c; color: #cccccc; border: 1px solid #3e3e42; padding: 5px; border-radius: 2px; }"
-        "QLineEdit:focus { border-color: #0078d4; }"
-        "QSpinBox, QDoubleSpinBox { background-color: #3c3c3c; color: #cccccc; border: 1px solid #3e3e42; padding: 3px; border-radius: 2px; }"
-        "QComboBox { background-color: #3c3c3c; color: #cccccc; border: 1px solid #3e3e42; padding: 5px; border-radius: 2px; }"
-        "QComboBox::drop-down { border: none; }"
-        "QComboBox::down-arrow { image: none; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid #cccccc; }"
-        "QCheckBox { color: #cccccc; }"
-        "QCheckBox::indicator { width: 16px; height: 16px; }"
-        "QPushButton { background-color: #0e639c; color: #ffffff; border: none; padding: 8px 16px; border-radius: 2px; }"
-        "QPushButton:hover { background-color: #1177bb; }"
-        "QPushButton:pressed { background-color: #0e639c; }"
-        "QPushButton#btnCancel { background-color: #3c3c3c; }"
-        "QPushButton#btnCancel:hover { background-color: #4e4e4e; }"
+        "QGroupBox { "
+        "  color: #cccccc; "
+        "  font-weight: bold; "
+        "  border: 1px solid #3e3e42; "
+        "  border-radius: 4px; "
+        "  margin-top: 10px; "
+        "  padding-top: 10px; "
+        "} "
+        "QGroupBox::title { "
+        "  subcontrol-origin: margin; "
+        "  left: 10px; "
+        "  padding: 0 5px; "
+        "} "
+        "QLineEdit { "
+        "  background-color: #3c3c3c; "
+        "  color: #cccccc; "
+        "  border: 1px solid #3e3e42; "
+        "  border-radius: 2px; "
+        "  padding: 5px; "
+        "} "
+        "QLineEdit:focus { border: 1px solid #0078d4; } "
+        "QSpinBox { "
+        "  background-color: #3c3c3c; "
+        "  color: #cccccc; "
+        "  border: 1px solid #3e3e42; "
+        "  border-radius: 2px; "
+        "  padding: 3px; "
+        "} "
+        "QSpinBox:focus { border: 1px solid #0078d4; } "
+        "QComboBox { "
+        "  background-color: #3c3c3c; "
+        "  color: #cccccc; "
+        "  border: 1px solid #3e3e42; "
+        "  border-radius: 2px; "
+        "  padding: 5px; "
+        "} "
+        "QComboBox:focus { border: 1px solid #0078d4; } "
+        "QComboBox::drop-down { border: none; width: 20px; } "
+        "QComboBox QAbstractItemView { "
+        "  background-color: #3c3c3c; "
+        "  color: #cccccc; "
+        "  selection-background-color: #0078d4; "
+        "} "
+        "QCheckBox { color: #cccccc; } "
+        "QCheckBox::indicator { width: 16px; height: 16px; } "
+        "QPushButton { "
+        "  background-color: #0e639c; "
+        "  color: #ffffff; "
+        "  border: none; "
+        "  padding: 6px 16px; "
+        "  border-radius: 2px; "
+        "} "
+        "QPushButton:hover { background-color: #1177bb; } "
+        "QPushButton:pressed { background-color: #0e639c; } "
+        "QDialogButtonBox QPushButton { min-width: 70px; }"
     );
+}
 
-    m_btnCancel->setObjectName("btnCancel");
+void SettingsDialog::loadSettings()
+{
+    m_editOpenDir->setText(Utils::AppSettings::defaultOpenDirectory());
+    m_editExportDir->setText(Utils::AppSettings::defaultExportDirectory());
+    m_spinMaxRecentFiles->setValue(Utils::AppSettings::maxRecentFiles());
+    m_chkAutoSave->setChecked(Utils::AppSettings::autoSaveResults());
+
+    QString format = Utils::AppSettings::exportFormat();
+    int index = m_comboExportFormat->findData(format);
+    if (index >= 0) {
+        m_comboExportFormat->setCurrentIndex(index);
+    }
+
+    m_chkIncludeTimestamp->setChecked(Utils::AppSettings::includeTimestamp());
+    m_chkIncludeMetadata->setChecked(Utils::AppSettings::includeMetadata());
+}
+
+void SettingsDialog::saveSettings()
+{
+    Utils::AppSettings::setDefaultOpenDirectory(m_editOpenDir->text());
+    Utils::AppSettings::setDefaultExportDirectory(m_editExportDir->text());
+    Utils::AppSettings::setMaxRecentFiles(m_spinMaxRecentFiles->value());
+    Utils::AppSettings::setAutoSaveResults(m_chkAutoSave->isChecked());
+    Utils::AppSettings::setExportFormat(m_comboExportFormat->currentData().toString());
+    Utils::AppSettings::setIncludeTimestamp(m_chkIncludeTimestamp->isChecked());
+    Utils::AppSettings::setIncludeMetadata(m_chkIncludeMetadata->isChecked());
 }
 
 void SettingsDialog::onBrowseOpenDirectory()

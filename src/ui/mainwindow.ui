@@ -107,12 +107,18 @@
     <property name="title">
      <string>工具(&amp;T)</string>
     </property>
-    <addaction name="actionSettings"/>
-    <addaction name="separator"/>
     <addaction name="actionBatchProcess"/>
     <addaction name="separator"/>
-    <addaction name="actionProcess"/>
-    <addaction name="actionStop"/>
+    <addaction name="actionRoadDamage"/>
+    <addaction name="actionRemoteSensing"/>
+   </widget>
+
+   <!-- 设置菜单 -->
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>设置(&amp;S)</string>
+    </property>
+    <addaction name="actionSettings"/>
    </widget>
 
    <!-- 帮助菜单 -->
@@ -132,6 +138,7 @@
    <addaction name="menuImage"/>
    <addaction name="menuTasks"/>
    <addaction name="menuTools"/>
+   <addaction name="menuSettings"/>
    <addaction name="menuHelp"/>
   </widget>
 
@@ -536,26 +543,26 @@
     <string>批量处理文件夹中的图像</string>
    </property>
   </action>
-  <action name="actionProcess">
+  <action name="actionRoadDamage">
    <property name="text">
-    <string>运行处理(&amp;R)</string>
-   </property>
-   <property name="shortcut">
-    <string>F5</string>
+    <string>路面病害检测(&amp;R)...</string>
    </property>
    <property name="toolTip">
-    <string>运行图像处理流程</string>
+    <string>路面病害检测模块（开发中）</string>
+   </property>
+   <property name="enabled">
+    <bool>false</bool>
    </property>
   </action>
-  <action name="actionStop">
+  <action name="actionRemoteSensing">
    <property name="text">
-    <string>停止(&amp;T)</string>
-   </property>
-   <property name="shortcut">
-    <string>Shift+F5</string>
+    <string>遥感影像分析(&amp;M)...</string>
    </property>
    <property name="toolTip">
-    <string>停止当前处理</string>
+    <string>遥感影像分析模块（开发中）</string>
+   </property>
+   <property name="enabled">
+    <bool>false</bool>
    </property>
   </action>
 

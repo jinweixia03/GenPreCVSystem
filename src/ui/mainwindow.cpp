@@ -36,6 +36,8 @@
 #include <QAction>
 #include <QMimeData>
 #include <QLineEdit>
+#include <QTextEdit>
+#include <QPlainTextEdit>
 #include <QDesktopServices>
 #include <QUrl>
 #include <QBuffer>
@@ -740,8 +742,9 @@ QString MainWindow::getImageFileFilter() const
  */
 void MainWindow::on_actionOpenImage_triggered()
 {
+    QString defaultDir = GenPreCVSystem::Utils::AppSettings::defaultOpenDirectory();
     QString fileName = QFileDialog::getOpenFileName(
-        this, "打开图片文件", "", getImageFileFilter()
+        this, "打开图片文件", defaultDir, getImageFileFilter()
     );
 
     if (!fileName.isEmpty()) {
@@ -767,7 +770,8 @@ void MainWindow::on_actionOpenImage_triggered()
  */
 void MainWindow::on_actionOpenFolder_triggered()
 {
-    QString dirPath = QFileDialog::getExistingDirectory(this, "打开图片文件夹");
+    QString defaultDir = GenPreCVSystem::Utils::AppSettings::defaultOpenDirectory();
+    QString dirPath = QFileDialog::getExistingDirectory(this, "打开图片文件夹", defaultDir);
 
     if (!dirPath.isEmpty()) {
         QModelIndex sourceIndex = fileModel->index(dirPath);
@@ -841,8 +845,9 @@ void MainWindow::on_actionSaveImageAs_triggered()
         return;
     }
 
+    QString defaultDir = GenPreCVSystem::Utils::AppSettings::defaultExportDirectory();
     QString fileName = QFileDialog::getSaveFileName(
-        this, "另存为", "", getImageFileFilter()
+        this, "另存为", defaultDir, getImageFileFilter()
     );
 
     if (!fileName.isEmpty()) {
@@ -868,9 +873,10 @@ void MainWindow::on_actionExport_triggered()
         return;
     }
 
+    QString defaultDir = GenPreCVSystem::Utils::AppSettings::defaultExportDirectory();
     QString defaultName = m_currentImagePath.isEmpty()
-        ? QString("exported_%1.png").arg(QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss"))
-        : QFileInfo(m_currentImagePath).baseName() + "_exported.png";
+        ? QString("%1/exported_%2.png").arg(defaultDir).arg(QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss"))
+        : QString("%1/%2_exported.png").arg(defaultDir).arg(QFileInfo(m_currentImagePath).baseName());
 
     QString fileName = QFileDialog::getSaveFileName(
         this, "导出图片", defaultName, getImageFileFilter()
@@ -951,6 +957,26 @@ void MainWindow::on_actionRedo_triggered()
  */
 void MainWindow::on_actionCopyImage_triggered()
 {
+    // 如果焦点在文本编辑控件上，执行文本复制
+    QWidget *focusedWidget = QApplication::focusWidget();
+    if (qobject_cast<QTextEdit*>(focusedWidget) ||
+        qobject_cast<QLineEdit*>(focusedWidget) ||
+        qobject_cast<QPlainTextEdit*>(focusedWidget)) {
+        // 使用控件的默认复制功能
+        if (QTextEdit *textEdit = qobject_cast<QTextEdit*>(focusedWidget)) {
+            textEdit->copy();
+            return;
+        }
+        if (QLineEdit *lineEdit = qobject_cast<QLineEdit*>(focusedWidget)) {
+            lineEdit->copy();
+            return;
+        }
+        if (QPlainTextEdit *plainTextEdit = qobject_cast<QPlainTextEdit*>(focusedWidget)) {
+            plainTextEdit->copy();
+            return;
+        }
+    }
+
     if (m_currentPixmap.isNull()) {
         QMessageBox::warning(this, "提示", "没有可复制的图片");
         return;
@@ -1420,30 +1446,7 @@ void MainWindow::on_actionTaskEdgeDetection_triggered()
 void MainWindow::on_actionSettings_triggered()
 {
     GenPreCVSystem::Views::SettingsDialog dialog(this);
-    connect(&dialog, &GenPreCVSystem::Views::SettingsDialog::settingsChanged, this, [this]() {
-        logMessage("设置已更新");
-        // 更新最近文件数量
-        if (m_recentFilesManager) {
-            m_recentFilesManager->setMaxFiles(GenPreCVSystem::Utils::AppSettings::maxRecentFiles());
-        }
-    });
     dialog.exec();
-}
-
-/**
- * @brief 运行处理
- */
-void MainWindow::on_actionProcess_triggered()
-{
-    logMessage("运行处理待实现");
-}
-
-/**
- * @brief 停止处理
- */
-void MainWindow::on_actionStop_triggered()
-{
-    logMessage("停止处理待实现");
 }
 
 /**
@@ -1451,13 +1454,26 @@ void MainWindow::on_actionStop_triggered()
  */
 void MainWindow::on_actionBatchProcess_triggered()
 {
-    if (!m_batchProcessDialog) {
-        m_batchProcessDialog = new GenPreCVSystem::Views::BatchProcessDialog(this);
-        m_batchProcessDialog->setYOLOService(m_taskController->yoloService());
+    if (!m_taskController || !m_taskController->yoloService()) {
+        QMessageBox::warning(this, tr("提示"), tr("请先启动 YOLO 服务"));
+        return;
     }
 
-    // 设置当前任务类型和模型
-    m_batchProcessDialog->setTaskType(static_cast<GenPreCVSystem::Models::CVTask>(m_currentTask));
+    if (!m_batchProcessDialog) {
+        m_batchProcessDialog = new GenPreCVSystem::Views::BatchProcessDialog(this);
+        // 当对话框关闭时，恢复结果显示功能
+        connect(m_batchProcessDialog, &QDialog::finished, this, [this]() {
+            if (m_taskController) {
+                m_taskController->setShowResultDialog(true);
+            }
+        });
+    }
+
+    // 禁用结果显示（批量处理时不需要弹出结果对话框）
+    m_taskController->setShowResultDialog(false);
+
+    // 设置 YOLO 服务（对话框会自动处理模型和任务选择）
+    m_batchProcessDialog->setYOLOService(m_taskController->yoloService());
 
     m_batchProcessDialog->show();
     m_batchProcessDialog->raise();

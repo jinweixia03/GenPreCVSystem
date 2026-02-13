@@ -1,4 +1,6 @@
 #include "detectionresultdialog.h"
+#include "../utils/exportservice.h"
+#include "../utils/appsettings.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPushButton>
@@ -15,6 +17,7 @@
 #include <QProgressBar>
 #include <QSplitter>
 #include <QStackedWidget>
+#include <QDateTime>
 
 namespace GenPreCVSystem {
 namespace Views {
@@ -25,6 +28,7 @@ DetectionResultDialog::DetectionResultDialog(QWidget *parent)
     , m_lblInfo(nullptr)
     , m_txtDetails(nullptr)
     , m_btnSave(nullptr)
+    , m_btnExport(nullptr)
     , m_btnZoomIn(nullptr)
     , m_btnZoomOut(nullptr)
     , m_btnFit(nullptr)
@@ -183,6 +187,25 @@ void DetectionResultDialog::setupUI()
         "}"
     );
 
+    m_btnExport = new QPushButton(tr("导出数据"), this);
+    m_btnExport->setFixedWidth(100);
+    m_btnExport->setStyleSheet(
+        "QPushButton { "
+        "  background-color: #107c10; "
+        "  color: #ffffff; "
+        "  border: none; "
+        "  padding: 8px 16px; "
+        "  border-radius: 4px; "
+        "  font-size: 13px; "
+        "} "
+        "QPushButton:hover { "
+        "  background-color: #0e6e0e; "
+        "} "
+        "QPushButton:pressed { "
+        "  background-color: #0c5a0c; "
+        "}"
+    );
+
     m_btnClose = new QPushButton(tr("关闭"), this);
     m_btnClose->setFixedWidth(80);
     m_btnClose->setStyleSheet(
@@ -203,10 +226,12 @@ void DetectionResultDialog::setupUI()
     );
 
     bottomLayout->addWidget(m_btnSave);
+    bottomLayout->addWidget(m_btnExport);
     bottomLayout->addStretch();
     bottomLayout->addWidget(m_btnClose);
 
     connect(m_btnSave, &QPushButton::clicked, this, &DetectionResultDialog::onSaveClicked);
+    connect(m_btnExport, &QPushButton::clicked, this, &DetectionResultDialog::onExportClicked);
     connect(m_btnClose, &QPushButton::clicked, this, &QDialog::close);
 
     mainLayout->addLayout(bottomLayout);
@@ -819,6 +844,59 @@ void DetectionResultDialog::onSaveClicked()
         QMessageBox::information(this, tr("保存成功"), tr("结果图像已保存至: %1").arg(savePath));
     } else {
         QMessageBox::warning(this, tr("保存失败"), tr("无法保存图像到指定位置"));
+    }
+}
+
+void DetectionResultDialog::onExportClicked()
+{
+    QString defaultDir = Utils::AppSettings::defaultExportDirectory();
+    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss");
+    QString defaultName = QString("%1/result_%2.json").arg(defaultDir).arg(timestamp);
+
+    QString filePath = QFileDialog::getSaveFileName(
+        this,
+        tr("导出检测数据"),
+        defaultName,
+        Utils::ExportService::getExportFilter()
+    );
+
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    Utils::ExportMetadata metadata;
+    metadata.imagePath = m_currentImagePath;
+    metadata.timestamp = QDateTime::currentDateTime().toString(Qt::ISODate);
+    metadata.taskType = QString::number(static_cast<int>(m_currentTaskType));
+
+    Utils::ExportService::Format format = Utils::ExportService::formatFromExtension(
+        QFileInfo(filePath).suffix());
+
+    bool success = false;
+
+    switch (m_currentTaskType) {
+    case Models::CVTask::ObjectDetection:
+    case Models::CVTask::SemanticSegmentation:
+        success = Utils::ExportService::exportDetectionResult(
+            m_currentResult, metadata, filePath, format);
+        break;
+    case Models::CVTask::ImageClassification:
+        success = Utils::ExportService::exportClassificationResult(
+            m_classificationResult, metadata, filePath, format);
+        break;
+    case Models::CVTask::KeyPointDetection:
+        success = Utils::ExportService::exportKeypointResult(
+            m_keypointResult, metadata, filePath, format);
+        break;
+    default:
+        QMessageBox::warning(this, tr("导出失败"), tr("当前任务类型不支持数据导出"));
+        return;
+    }
+
+    if (success) {
+        QMessageBox::information(this, tr("导出成功"), tr("检测数据已导出至: %1").arg(filePath));
+    } else {
+        QMessageBox::warning(this, tr("导出失败"), tr("无法导出数据到指定位置"));
     }
 }
 

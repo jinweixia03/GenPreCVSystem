@@ -79,6 +79,7 @@ signals:
 
 private slots:
     void onSaveClicked();
+    void onExportClicked();
     void onZoomIn();
     void onZoomOut();
     void onFitToWindow();
@@ -99,6 +100,7 @@ private:
     QLabel *m_lblInfo;
     QTextEdit *m_txtDetails;
     QPushButton *m_btnSave;
+    QPushButton *m_btnExport;
     QPushButton *m_btnZoomIn;
     QPushButton *m_btnZoomOut;
     QPushButton *m_btnFit;

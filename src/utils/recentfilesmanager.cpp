@@ -1,3 +1,13 @@
+/**
+ * @file recentfilesmanager.cpp
+ * @brief 最近文件管理器实现
+ *
+ * 管理最近打开的文件列表：
+ * - 自动保存到设置文件
+ * - 更新文件菜单的最近文件子菜单
+ * - 验证文件是否仍然存在
+ */
+
 #include "recentfilesmanager.h"
 #include "appsettings.h"
 #include <QFile>

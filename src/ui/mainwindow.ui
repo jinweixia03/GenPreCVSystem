@@ -145,7 +145,7 @@
   <!-- ==================== 文件菜单动作 ==================== -->
   <action name="actionOpenImage">
    <property name="text">
-    <string>打开图片(&amp;O)...</string>
+    <string>🖼 打开图片(&amp;O)...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
@@ -156,7 +156,7 @@
   </action>
   <action name="actionOpenFolder">
    <property name="text">
-    <string>打开文件夹(&amp;D)...</string>
+    <string>📁 打开文件夹(&amp;D)...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+D</string>
@@ -167,7 +167,7 @@
   </action>
   <action name="actionCloseImage">
    <property name="text">
-    <string>关闭图片(&amp;C)</string>
+    <string>✕ 关闭图片(&amp;C)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+W</string>
@@ -178,7 +178,7 @@
   </action>
   <action name="actionSaveImage">
    <property name="text">
-    <string>保存(&amp;S)</string>
+    <string>💾 保存(&amp;S)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
@@ -189,7 +189,7 @@
   </action>
   <action name="actionSaveImageAs">
    <property name="text">
-    <string>另存为(&amp;A)...</string>
+    <string>📄 另存为(&amp;A)...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+S</string>
@@ -200,7 +200,7 @@
   </action>
   <action name="actionExport">
    <property name="text">
-    <string>导出(&amp;E)...</string>
+    <string>📤 导出(&amp;E)...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+E</string>
@@ -211,7 +211,7 @@
   </action>
   <action name="actionExit">
    <property name="text">
-    <string>退出(&amp;X)</string>
+    <string>⏻ 退出(&amp;X)</string>
    </property>
    <property name="shortcut">
     <string>Alt+F4</string>
@@ -221,7 +221,7 @@
   <!-- ==================== 编辑菜单动作 ==================== -->
   <action name="actionUndo">
    <property name="text">
-    <string>撤销(&amp;U)</string>
+    <string>↩ 撤销(&amp;U)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Z</string>
@@ -229,7 +229,7 @@
   </action>
   <action name="actionRedo">
    <property name="text">
-    <string>重做(&amp;R)</string>
+    <string>↪ 重做(&amp;R)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Y</string>
@@ -237,7 +237,7 @@
   </action>
   <action name="actionCopyImage">
    <property name="text">
-    <string>复制图片(&amp;C)</string>
+    <string>📋 复制图片(&amp;C)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+C</string>
@@ -248,7 +248,7 @@
   </action>
   <action name="actionPaste">
    <property name="text">
-    <string>粘贴(&amp;P)</string>
+    <string>📄 粘贴(&amp;P)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+V</string>
@@ -259,7 +259,7 @@
   </action>
   <action name="actionRotateLeft">
    <property name="text">
-    <string>向左旋转 90°(&amp;L)</string>
+    <string>↺ 向左旋转 90°(&amp;L)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+L</string>
@@ -267,7 +267,7 @@
    </action>
   <action name="actionRotateRight">
    <property name="text">
-    <string>向右旋转 90°(&amp;R)</string>
+    <string>↻ 向右旋转 90°(&amp;R)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+R</string>
@@ -275,7 +275,7 @@
   </action>
   <action name="actionFlipHorizontal">
    <property name="text">
-    <string>水平翻转(&amp;H)</string>
+    <string>⇆ 水平翻转(&amp;H)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+H</string>
@@ -283,7 +283,7 @@
   </action>
   <action name="actionFlipVertical">
    <property name="text">
-    <string>垂直翻转(&amp;V)</string>
+    <string>⇅ 垂直翻转(&amp;V)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+H</string>
@@ -293,7 +293,7 @@
   <!-- ==================== 视图菜单动作 ==================== -->
   <action name="actionZoomIn">
    <property name="text">
-    <string>放大(&amp;I)</string>
+    <string>🔍 放大(&amp;I)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl++</string>
@@ -304,7 +304,7 @@
   </action>
   <action name="actionZoomOut">
    <property name="text">
-    <string>缩小(&amp;O)</string>
+    <string>🔎 缩小(&amp;O)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+-</string>
@@ -315,7 +315,7 @@
   </action>
   <action name="actionFitToWindow">
    <property name="text">
-    <string>适应窗口(&amp;F)</string>
+    <string>⊞ 适应窗口(&amp;F)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+F</string>
@@ -326,7 +326,7 @@
   </action>
   <action name="actionActualSize">
    <property name="text">
-    <string>实际大小(&amp;A)</string>
+    <string>▢ 实际大小(&amp;A)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+1</string>
@@ -375,7 +375,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>灰度化(&amp;G)</string>
+    <string>◐ 灰度化(&amp;G)</string>
    </property>
    <property name="toolTip">
     <string>将图片转换为灰度图</string>
@@ -386,7 +386,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>反色(&amp;I)</string>
+    <string>◑ 反色(&amp;I)</string>
    </property>
    <property name="toolTip">
     <string>反转图片颜色</string>
@@ -394,7 +394,7 @@
   </action>
   <action name="actionBlur">
    <property name="text">
-    <string>模糊(&amp;B)</string>
+    <string>◌ 模糊(&amp;B)</string>
    </property>
    <property name="toolTip">
     <string>高斯模糊处理</string>
@@ -402,7 +402,7 @@
   </action>
   <action name="actionSharpen">
    <property name="text">
-    <string>锐化(&amp;S)</string>
+    <string>◈ 锐化(&amp;S)</string>
    </property>
    <property name="toolTip">
     <string>锐化图片边缘</string>
@@ -410,7 +410,7 @@
   </action>
   <action name="actionThreshold">
    <property name="text">
-    <string>二值化(&amp;T)</string>
+    <string>◧ 二值化(&amp;T)</string>
    </property>
    <property name="toolTip">
     <string>图像二值化处理</string>
@@ -426,7 +426,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>图像分类(&amp;C)</string>
+    <string>🏷 图像分类(&amp;C)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+C</string>
@@ -440,7 +440,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>目标检测(&amp;O)</string>
+    <string>▢ 目标检测(&amp;O)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+O</string>
@@ -454,7 +454,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>语义分割(&amp;S)</string>
+    <string>◈ 语义分割(&amp;S)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+S</string>
@@ -468,7 +468,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>关键点检测(&amp;K)</string>
+    <string>◎ 关键点检测(&amp;K)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+K</string>
@@ -482,7 +482,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>图像增强(&amp;E)</string>
+    <string>✦ 图像增强(&amp;E)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+E</string>
@@ -496,7 +496,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>图像去噪(&amp;D)</string>
+    <string>✧ 图像去噪(&amp;D)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+D</string>
@@ -510,7 +510,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>边缘检测(&amp;G)</string>
+    <string>◇ 边缘检测(&amp;G)</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+G</string>
@@ -523,7 +523,7 @@
   <!-- ==================== 工具菜单动作 ==================== -->
   <action name="actionSettings">
    <property name="text">
-    <string>设置(&amp;S)...</string>
+    <string>⚙ 设置(&amp;S)...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+,</string>
@@ -534,7 +534,7 @@
   </action>
   <action name="actionBatchProcess">
    <property name="text">
-    <string>批量处理(&amp;B)...</string>
+    <string>⚡ 批量处理(&amp;B)...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+B</string>
@@ -545,7 +545,7 @@
   </action>
   <action name="actionRoadDamage">
    <property name="text">
-    <string>路面病害检测(&amp;R)...</string>
+    <string>🛣 路面病害检测(&amp;R)...</string>
    </property>
    <property name="toolTip">
     <string>路面病害检测模块（开发中）</string>
@@ -556,7 +556,7 @@
   </action>
   <action name="actionRemoteSensing">
    <property name="text">
-    <string>遥感影像分析(&amp;M)...</string>
+    <string>🛰 遥感影像分析(&amp;M)...</string>
    </property>
    <property name="toolTip">
     <string>遥感影像分析模块（开发中）</string>
@@ -569,7 +569,7 @@
   <!-- ==================== 帮助菜单动作 ==================== -->
   <action name="actionDocumentation">
    <property name="text">
-    <string>使用文档(&amp;D)</string>
+    <string>📖 使用文档(&amp;D)</string>
    </property>
    <property name="shortcut">
     <string>F1</string>
@@ -577,12 +577,12 @@
   </action>
   <action name="actionShortcuts">
    <property name="text">
-    <string>快捷键(&amp;K)...</string>
+    <string>⌨ 快捷键(&amp;K)...</string>
    </property>
   </action>
   <action name="actionAbout">
    <property name="text">
-    <string>关于(&amp;A)...</string>
+    <string>ℹ 关于(&amp;A)...</string>
    </property>
   </action>
 
@@ -604,7 +604,7 @@
     <item>
      <widget class="QLabel" name="lblWorkspace">
       <property name="styleSheet">
-       <string notr="true">font-size: 14px; padding: 10px; border-radius: 8px; font-weight: 500;</string>
+       <string notr="true">font-size: 14px; padding: 10px; border: 1px solid #0066cc; font-weight: bold; color: #000000; background-color: #ffffff;</string>
       </property>
       <property name="text">
        <string>主工作区（图片展示区域）</string>

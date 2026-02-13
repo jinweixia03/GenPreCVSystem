@@ -1,3 +1,14 @@
+/**
+ * @file imageview.cpp
+ * @brief 图像显示视图实现
+ *
+ * 基于 QGraphicsView 的图像显示组件，支持：
+ * - 图像缩放（鼠标滚轮）
+ * - 图像平移（鼠标拖拽）
+ * - 自适应窗口显示
+ * - 检测结果可视化（边界框、标签、掩码）
+ */
+
 #include "imageview.h"
 #include <QScrollBar>
 #include <QPen>
@@ -21,7 +32,7 @@ ImageView::ImageView(QWidget *parent)
 
     // 设置外观样式
     setStyleSheet(
-        "ImageView { background-color: #1e1e1e; border: none; }"
+        "ImageView { background-color: #ffffff; border: none; }"
     );
 
     // 设置渲染选项（抗锯齿、平滑）

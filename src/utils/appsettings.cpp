@@ -1,3 +1,14 @@
+/**
+ * @file appsettings.cpp
+ * @brief 应用程序设置管理实现
+ *
+ * 使用 QSettings 持久化存储应用程序配置，包括：
+ * - 默认打开/导出目录
+ * - 最近文件列表
+ * - YOLO 推理参数（置信度、IOU阈值等）
+ * - 导出格式设置
+ */
+
 #include "appsettings.h"
 #include <QSettings>
 #include <QStandardPaths>

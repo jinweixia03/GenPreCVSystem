@@ -1,3 +1,20 @@
+/**
+ * @file main.cpp
+ * @brief GenPreCVSystem 应用程序入口
+ *
+ * 计算机视觉预处理系统 - 主入口文件
+ *
+ * 功能特性：
+ * - 图像分类、目标检测、语义分割、姿态检测
+ * - 批量图像处理
+ * - YOLO 模型推理
+ * - 图像处理（灰度化、反色、模糊、锐化、二值化等）
+ *
+ * @author GenPreCV Team
+ * @version 1.0.0
+ * @date 2024
+ */
+
 #include "ui/mainwindow.h"
 #include "ui/splashscreen.h"
 #include "utils/exceptions.h"

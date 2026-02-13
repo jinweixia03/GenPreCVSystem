@@ -1,3 +1,14 @@
+/**
+ * @file taskcontroller.cpp
+ * @brief 任务控制器实现
+ *
+ * 管理计算机视觉任务的切换和执行：
+ * - 图像分类、目标检测、语义分割、姿态检测
+ * - 图像增强、去噪、边缘检测
+ *
+ * 协调 YOLO 服务、图像处理服务和 UI 组件
+ */
+
 #include "taskcontroller.h"
 #include "../models/tasktypes.h"
 #include "parameterpanelfactory.h"

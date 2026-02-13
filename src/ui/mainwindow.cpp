@@ -476,9 +476,12 @@ void MainWindow::setupImageViewer()
     tabWidget->setTabsClosable(true);
     tabWidget->setMovable(true);
     tabWidget->setStyleSheet(
-        "QTabWidget::pane { border: 1px solid #3e3e42; background: #252526; }"
+        "QTabWidget::pane { border: 1px solid #0066cc; background: #ffffff; }"
+        "QTabBar::tab { background: #e0e0e0; color: #000000; padding: 6px 12px; border: 1px solid #c0c0c0; }"
+        "QTabBar::tab:selected { background: #0066cc; color: #ffffff; }"
+        "QTabBar::tab:hover { background: #f0f0f0; }"
         "QTabBar::close-button { image: url(:/icons/close.png); subcontrol-position: right; }"
-        "QTabBar::close-button:hover { background-color: #c0392b; }"
+        "QTabBar::close-button:hover { background-color: #cc3300; }"
     );
 
     // 连接标签页关闭和切换信号
@@ -562,7 +565,7 @@ void MainWindow::closeImage()
 void MainWindow::setupDockWidgets()
 {
     // ========== 创建左侧文件浏览器 ==========
-    dockFileBrowser = new QDockWidget("文件浏览器", this);
+    dockFileBrowser = new QDockWidget("📁 文件浏览器", this);
     dockFileBrowser->setMinimumWidth(200);
     dockFileBrowser->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
 
@@ -574,27 +577,51 @@ void MainWindow::setupDockWidgets()
 
     // 创建导航工具栏
     QWidget *navBar = new QWidget(browserContainer);
-    navBar->setStyleSheet("background-color: #333333; border-bottom: 1px solid #3e3e42;");
+    navBar->setStyleSheet("background-color: #f5f5f5; border-bottom: 2px solid #0066cc;");
     QHBoxLayout *navLayout = new QHBoxLayout(navBar);
     navLayout->setContentsMargins(5, 5, 5, 5);
 
+    // 文件夹图标装饰
+    QLabel *folderIcon = new QLabel("📁", navBar);
+    folderIcon->setStyleSheet("font-size: 14px; background: transparent;");
+    folderIcon->setFixedSize(20, 24);
+    folderIcon->setAlignment(Qt::AlignCenter);
+    navLayout->addWidget(folderIcon);
+
     // 向上按钮
-    QPushButton *btnUp = new QPushButton("↑", navBar);
+    QPushButton *btnUp = new QPushButton("⬆", navBar);
     btnUp->setFixedSize(24, 24);
     btnUp->setToolTip("向上一级");
     btnUp->setStyleSheet(
-        "QPushButton { background-color: #3e3e42; color: #cccccc; border: 1px solid #555; border-radius: 2px; }"
-        "QPushButton:hover { background-color: #505050; }"
-        "QPushButton:pressed { background-color: #094771; }"
+        "QPushButton { background-color: #0066cc; color: #ffffff; border: none; }"
+        "QPushButton:hover { background-color: #0077dd; }"
+        "QPushButton:pressed { background-color: #0055aa; }"
     );
     connect(btnUp, &QPushButton::clicked, this, &MainWindow::navigateUp);
 
+    // 刷新按钮
+    QPushButton *btnRefresh = new QPushButton("⟳", navBar);
+    btnRefresh->setFixedSize(24, 24);
+    btnRefresh->setToolTip("刷新");
+    btnRefresh->setStyleSheet(
+        "QPushButton { background-color: #0066cc; color: #ffffff; border: none; }"
+        "QPushButton:hover { background-color: #0077dd; }"
+        "QPushButton:pressed { background-color: #0055aa; }"
+    );
+    connect(btnRefresh, &QPushButton::clicked, this, [this]() {
+        if (fileModel) {
+            fileModel->setRootPath(fileModel->rootPath());
+            logMessage("文件列表已刷新");
+        }
+    });
+
     // 当前路径显示
     labelCurrentPath = new QLabel("/", navBar);
-    labelCurrentPath->setStyleSheet("color: #cccccc; padding: 2px;");
+    labelCurrentPath->setStyleSheet("color: #000000; padding: 2px;");
     labelCurrentPath->setWordWrap(true);
 
     navLayout->addWidget(btnUp);
+    navLayout->addWidget(btnRefresh);
     navLayout->addWidget(labelCurrentPath, 1);
 
     browserLayout->addWidget(navBar);
@@ -602,10 +629,10 @@ void MainWindow::setupDockWidgets()
     // 创建文件树视图
     treeViewFiles = new FileTreeView(this);
     treeViewFiles->setStyleSheet(
-        "QTreeView { background-color: #252526; color: #cccccc; border: none; }"
+        "QTreeView { background-color: #ffffff; color: #000000; border: none; }"
         "QTreeView::item { padding: 3px; }"
-        "QTreeView::item:hover { background-color: #3e3e42; }"
-        "QTreeView::item:selected { background-color: #094771; }"
+        "QTreeView::item:hover { background-color: #e0e0e0; }"
+        "QTreeView::item:selected { background-color: #0066cc; color: #ffffff; }"
     );
     treeViewFiles->setHeaderHidden(true);
     treeViewFiles->setFrameShape(QFrame::NoFrame);
@@ -649,23 +676,24 @@ void MainWindow::setupDockWidgets()
             ui->actionShowFileBrowser, &QAction::setChecked);
 
     // ========== 创建右侧参数设置面板 ==========
-    dockParameters = new QDockWidget("参数设置", this);
+    dockParameters = new QDockWidget("⚙ 参数设置", this);
     dockParameters->setMinimumWidth(250);
     dockParameters->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
 
     // 创建滚动区域以支持动态内容
     paramScrollArea = new QScrollArea(this);
     paramScrollArea->setStyleSheet(
-        "QScrollArea { background-color: #252526; border: none; }"
-        "QScrollBar:vertical { background-color: #3e3e42; width: 10px; }"
-        "QScrollBar::handle:vertical { background-color: #555; border-radius: 5px; min-height: 20px; }"
-        "QScrollBar::handle:vertical:hover { background-color: #666; }"
+        "QScrollArea { background-color: #ffffff; border: none; }"
+        "QScrollBar:vertical { background-color: #e0e0e0; width: 10px; }"
+        "QScrollBar::handle:vertical { background-color: #0066cc; min-height: 20px; }"
+        "QScrollBar::handle:vertical:hover { background-color: #0077dd; }"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }"
     );
     paramScrollArea->setWidgetResizable(true);
     paramScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     paramWidget = new QWidget();
-    paramWidget->setStyleSheet("background-color: #252526;");
+    paramWidget->setStyleSheet("background-color: #ffffff;");
     dockParameters->setWidget(paramScrollArea);
     addDockWidget(Qt::RightDockWidgetArea, dockParameters);
 
@@ -674,13 +702,13 @@ void MainWindow::setupDockWidgets()
             ui->actionShowParameterPanel, &QAction::setChecked);
 
     // ========== 创建底部日志输出区域 ==========
-    dockLogOutput = new QDockWidget("日志输出", this);
+    dockLogOutput = new QDockWidget("📋 日志输出", this);
     dockLogOutput->setMinimumHeight(150);
     dockLogOutput->setAllowedAreas(Qt::BottomDockWidgetArea | Qt::TopDockWidgetArea);
 
     textEditLog = new QTextEdit(this);
     textEditLog->setStyleSheet(
-        "QTextEdit { background-color: #1e1e1e; color: #cccccc; border: none; "
+        "QTextEdit { background-color: #ffffff; color: #000000; border: 1px solid #c0c0c0; "
         "font-family: Consolas, Monaco, monospace; }"
     );
     textEditLog->setFrameShape(QFrame::NoFrame);
@@ -724,7 +752,7 @@ void MainWindow::setupParameterPanel()
 void MainWindow::logMessage(const QString &message)
 {
     QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
-    textEditLog->append(QString("[%1] %2").arg(timestamp, message));
+    textEditLog->append(QString("▸ [%1] %2").arg(timestamp, message));
 }
 
 /**
@@ -1499,26 +1527,57 @@ void MainWindow::on_actionDocumentation_triggered()
 {
     QMessageBox::information(this, "使用文档",
         "<h2>GenPreCVSystem 使用文档</h2>"
-        "<p><b>文件操作：</b></p>"
+        "<p>计算机视觉预处理系统 - 支持图像分类、目标检测、语义分割、姿态检测等任务</p>"
+        "<hr>"
+        "<h3>📁 文件操作</h3>"
         "<ul>"
-        "<li>Ctrl+O - 打开图片文件</li>"
-        "<li>Ctrl+D - 打开图片文件夹</li>"
-        "<li>Ctrl+W - 关闭当前图片</li>"
-        "<li>Ctrl+S - 保存图片</li>"
-        "<li>Ctrl+Shift+S - 另存为</li>"
+        "<li><b>打开图片</b> (Ctrl+O) - 打开单个图片文件</li>"
+        "<li><b>打开文件夹</b> (Ctrl+D) - 浏览图片目录</li>"
+        "<li><b>关闭图片</b> (Ctrl+W) - 关闭当前标签页</li>"
+        "<li><b>保存</b> (Ctrl+S) - 保存当前图片</li>"
+        "<li><b>另存为</b> (Ctrl+Shift+S) - 保存到新文件</li>"
+        "<li><b>导出</b> (Ctrl+Shift+E) - 导出处理结果</li>"
         "</ul>"
-        "<p><b>视图操作：</b></p>"
+        "<h3>🔍 视图操作</h3>"
         "<ul>"
-        "<li>滚轮 - 缩放图片</li>"
-        "<li>左键拖拽 - 平移图片</li>"
-        "<li>Ctrl+F - 适应窗口</li>"
-        "<li>Ctrl+1 - 实际大小</li>"
+        "<li><b>滚轮</b> - 缩放图片</li>"
+        "<li><b>左键拖拽</b> - 平移图片</li>"
+        "<li><b>放大</b> (Ctrl++) - 放大显示</li>"
+        "<li><b>缩小</b> (Ctrl+-) - 缩小显示</li>"
+        "<li><b>适应窗口</b> (Ctrl+F) - 自适应显示</li>"
+        "<li><b>实际大小</b> (Ctrl+1) - 100%显示</li>"
         "</ul>"
-        "<p><b>图像处理：</b></p>"
+        "<h3>🖼 图像处理</h3>"
         "<ul>"
-        "<li>支持灰度化、反色、二值化</li>"
-        "<li>支持旋转、翻转操作</li>"
-        "</ul>");
+        "<li><b>灰度化</b> - 转换为灰度图</li>"
+        "<li><b>反色</b> - 颜色反转</li>"
+        "<li><b>模糊</b> - 高斯模糊处理</li>"
+        "<li><b>锐化</b> - 边缘锐化</li>"
+        "<li><b>二值化</b> - 图像二值化</li>"
+        "<li><b>旋转</b> (Ctrl+L/R) - 90°旋转</li>"
+        "<li><b>翻转</b> (Ctrl+H) - 水平/垂直翻转</li>"
+        "</ul>"
+        "<h3>🎯 CV 任务</h3>"
+        "<ul>"
+        "<li><b>图像分类</b> - 识别图像类别</li>"
+        "<li><b>目标检测</b> - 检测并标注目标</li>"
+        "<li><b>语义分割</b> - 像素级分割</li>"
+        "<li><b>姿态检测</b> - 人体关键点检测</li>"
+        "</ul>"
+        "<h3>⚡ 批量处理</h3>"
+        "<ul>"
+        "<li><b>批量处理</b> (Ctrl+Shift+B) - 批量处理文件夹图像</li>"
+        "<li>支持导出 YOLO 格式标注</li>"
+        "<li>支持 ZIP 压缩包导出</li>"
+        "</ul>"
+        "<h3>⚙ 设置</h3>"
+        "<ul>"
+        "<li>配置默认打开/导出目录</li>"
+        "<li>设置最近文件数量</li>"
+        "<li>配置导出格式 (JSON/CSV)</li>"
+        "</ul>"
+        "<hr>"
+        "<p>提示：选择带 ✓ 的 Python 环境以启用 YOLO 功能</p>");
 }
 
 /**
@@ -1654,10 +1713,10 @@ void MainWindow::showFileContextMenu(const QPoint &globalPos, const QString &fil
 {
     QMenu menu(this);
     menu.setStyleSheet(
-        "QMenu { background-color: #252526; color: #cccccc; border: 1px solid #3e3e42; }"
+        "QMenu { background-color: #ffffff; color: #000000; border: 1px solid #0066cc; }"
         "QMenu::item { padding: 6px 30px 6px 20px; }"
-        "QMenu::item:selected { background-color: #094771; }"
-        "QMenu::separator { height: 1px; background-color: #3e3e42; margin: 4px 8px; }"
+        "QMenu::item:selected { background-color: #0066cc; color: #ffffff; }"
+        "QMenu::separator { height: 1px; background-color: #c0c0c0; margin: 4px 8px; }"
     );
 
     QAction *actionOpen = menu.addAction("打开图片");
@@ -1703,10 +1762,10 @@ void MainWindow::showFolderContextMenu(const QPoint &globalPos, const QString &f
 {
     QMenu menu(this);
     menu.setStyleSheet(
-        "QMenu { background-color: #252526; color: #cccccc; border: 1px solid #3e3e42; }"
+        "QMenu { background-color: #ffffff; color: #000000; border: 1px solid #0066cc; }"
         "QMenu::item { padding: 6px 30px 6px 20px; }"
-        "QMenu::item:selected { background-color: #094771; }"
-        "QMenu::separator { height: 1px; background-color: #3e3e42; margin: 4px 8px; }"
+        "QMenu::item:selected { background-color: #0066cc; color: #ffffff; }"
+        "QMenu::separator { height: 1px; background-color: #c0c0c0; margin: 4px 8px; }"
     );
 
     QAction *actionOpen = menu.addAction("打开文件夹");
@@ -1748,10 +1807,10 @@ void MainWindow::showEmptySpaceContextMenu(const QPoint &globalPos)
 {
     QMenu menu(this);
     menu.setStyleSheet(
-        "QMenu { background-color: #252526; color: #cccccc; border: 1px solid #3e3e42; }"
+        "QMenu { background-color: #ffffff; color: #000000; border: 1px solid #0066cc; }"
         "QMenu::item { padding: 6px 30px 6px 20px; }"
-        "QMenu::item:selected { background-color: #094771; }"
-        "QMenu::separator { height: 1px; background-color: #3e3e42; margin: 4px 8px; }"
+        "QMenu::item:selected { background-color: #0066cc; color: #ffffff; }"
+        "QMenu::separator { height: 1px; background-color: #c0c0c0; margin: 4px 8px; }"
     );
 
     // 检查剪贴板是否有图片
@@ -2347,7 +2406,7 @@ int MainWindow::showSaveOptionsDialog(const QString &previewFileName)
 
     QLabel *previewLabel = new QLabel("新文件名:", &dialog);
     QLabel *previewValue = new QLabel(previewFileName, &dialog);
-    previewValue->setStyleSheet("font-weight: bold; color: #2196F3;");
+    previewValue->setStyleSheet("font-weight: bold; color: #0066cc;");
 
     previewLayout->addWidget(previewLabel);
     previewLayout->addWidget(previewValue);

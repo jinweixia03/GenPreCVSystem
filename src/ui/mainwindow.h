@@ -89,6 +89,12 @@ public:
      */
     void actualSize();
 
+    /**
+     * @brief 获取当前显示的图片
+     * @return 当前图片，如果没有图片则返回空 QPixmap
+     */
+    QPixmap pixmap() const;
+
 protected:
     /**
      * @brief 鼠标滚轮事件，用于缩放图片

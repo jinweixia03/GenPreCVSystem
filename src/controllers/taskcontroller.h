@@ -5,11 +5,18 @@
 #include <QActionGroup>
 #include <QScrollArea>
 #include <memory>
+#include <functional>
 
 #include "../models/tasktypes.h"
 
 // 前向声明
+class QTabWidget;
+class ImageView;  // 使用全局命名空间的 ImageView（定义在 mainwindow.h 中）
+
 namespace GenPreCVSystem {
+namespace Views {
+class DetectionResultDialog;
+}
 namespace Utils {
 class YOLOService;
 class ImageProcessService;
@@ -18,9 +25,6 @@ struct YOLODetection;
 struct YOLOClassificationResult;
 struct YOLOKeypointResult;
 struct ProcessResult;
-}
-namespace Views {
-class DetectionResultDialog;
 }
 namespace Controllers {
 class TabController;
@@ -60,6 +64,11 @@ public:
      * @brief 设置标签页控制器
      */
     void setTabController(TabController *tabController);
+
+    /**
+     * @brief 设置标签页组件（用于直接获取当前 ImageView）
+     */
+    void setTabWidget(QTabWidget *tabWidget);
 
     /**
      * @brief 切换任务类型
@@ -184,7 +193,10 @@ private:
     void connectParameterPanelSignals();
     void connectSharedWidgetSignals();
     void enableRunButtons(bool enabled);
+    ::ImageView* getCurrentImageView() const;  // 获取当前 ImageView（全局命名空间）
     QString getCurrentImagePath() const;
+    QString getCurrentImageForInference();  // 获取用于推理的图像路径（可能是临时文件）
+    void cleanupTempImage();  // 清理临时图像文件
     void showResultDialog(const Utils::YOLODetectionResult &result);
     bool isAITask(Models::CVTask task) const;
 
@@ -201,11 +213,17 @@ private:
     // 标签页控制器（用于获取当前图像路径）
     TabController *m_tabController;
 
+    // 标签页组件（用于直接获取当前 ImageView）
+    QTabWidget *m_tabWidget;
+
     // 当前图像路径（由 MainWindow 设置）
     QString m_currentImagePath;
 
     // 当前模型路径
     QString m_currentModelPath;
+
+    // 临时图像文件路径（用于推理）
+    QString m_tempImagePath;
 
     // 检测结果对话框
     Views::DetectionResultDialog *m_resultDialog;

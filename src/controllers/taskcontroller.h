@@ -86,6 +86,19 @@ public:
     Utils::YOLOService* yoloService() const { return m_yoloService; }
 
     /**
+     * @brief 设置是否显示结果对话框
+     * @param show true 显示结果对话框，false 不显示
+     *
+     * 用于批量处理时禁用结果对话框显示
+     */
+    void setShowResultDialog(bool show) { m_showResultDialog = show; }
+
+    /**
+     * @brief 获取是否显示结果对话框
+     */
+    bool showResultDialogEnabled() const { return m_showResultDialog; }
+
+    /**
      * @brief 扫描指定任务类型的可用模型
      * @param task 任务类型
      * @return 模型文件路径列表
@@ -140,6 +153,11 @@ public slots:
      * @brief 设置当前图像路径（由 MainWindow 调用）
      */
     void setCurrentImagePath(const QString &imagePath);
+
+    /**
+     * @brief 设置当前显示的图像（用于结果显示）
+     */
+    void setCurrentPixmap(const QPixmap &pixmap);
 
     /**
      * @brief 执行目标检测
@@ -219,6 +237,9 @@ private:
     // 当前图像路径（由 MainWindow 设置）
     QString m_currentImagePath;
 
+    // 当前图像（用于显示结果）
+    QPixmap m_currentPixmap;
+
     // 当前模型路径
     QString m_currentModelPath;
 
@@ -238,6 +259,9 @@ private:
     int m_maskAlpha;
     bool m_showBoxes;
     bool m_showLabels;
+
+    // 控制是否显示结果对话框（批量处理时禁用）
+    bool m_showResultDialog = true;
 };
 
 } // namespace Controllers

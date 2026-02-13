@@ -288,9 +288,17 @@ QString TaskController::getCurrentImageForInference()
         currentPixmap = m_tabController->currentPixmap();
     }
 
+    // 缓存当前 pixmap 用于结果显示
+    m_currentPixmap = currentPixmap;
+
     // 如果无法获取当前图片，回退到原始文件路径
     if (currentPixmap.isNull()) {
-        return getCurrentImagePath();
+        // 尝试从文件路径加载并缓存
+        QString imagePath = getCurrentImagePath();
+        if (!imagePath.isEmpty() && QFile::exists(imagePath)) {
+            m_currentPixmap.load(imagePath);
+        }
+        return imagePath;
     }
 
     // 使用应用程序目录创建临时文件（避免中文路径问题）
@@ -330,6 +338,11 @@ void TaskController::cleanupTempImage()
 void TaskController::setCurrentImagePath(const QString &imagePath)
 {
     m_currentImagePath = imagePath;
+}
+
+void TaskController::setCurrentPixmap(const QPixmap &pixmap)
+{
+    m_currentPixmap = pixmap;
 }
 
 void TaskController::switchTask(Models::CVTask task)
@@ -762,8 +775,10 @@ void TaskController::onDetectionCompleted(const Utils::YOLODetectionResult &resu
     // 转发信号给外部监听者
     emit detectionCompleted(result);
 
-    // 显示结果对话框
-    showResultDialog(result);
+    // 只在启用时显示结果对话框（批量处理时会禁用）
+    if (m_showResultDialog) {
+        showResultDialog(result);
+    }
 }
 
 void TaskController::showResultDialog(const Utils::YOLODetectionResult &result)
@@ -784,17 +799,31 @@ void TaskController::showResultDialog(const Utils::YOLODetectionResult &result)
     ::ImageView *imageView = getCurrentImageView();
     if (imageView) {
         pixmap = imageView->pixmap();
+        qDebug() << "Got pixmap from ImageView, null:" << pixmap.isNull() << "size:" << pixmap.size();
     }
 
-    // 如果无法从 ImageView 获取，尝试从文件路径加载
+    // 如果无法从 ImageView 获取，尝试从缓存的 pixmap 获取
+    if (pixmap.isNull() && !m_currentPixmap.isNull()) {
+        pixmap = m_currentPixmap;
+        qDebug() << "Got pixmap from cache, null:" << pixmap.isNull();
+    }
+
+    // 如果无法从 ImageView 获取，尝试从 TabController 获取
+    if (pixmap.isNull() && m_tabController) {
+        pixmap = m_tabController->currentPixmap();
+        qDebug() << "Got pixmap from TabController, null:" << pixmap.isNull();
+    }
+
+    // 如果仍然无法获取，尝试从文件路径加载
     if (pixmap.isNull()) {
         QString imagePath = getCurrentImagePath();
+        qDebug() << "Trying to load from path:" << imagePath << "exists:" << QFile::exists(imagePath);
         if (!imagePath.isEmpty() && QFile::exists(imagePath)) {
             pixmap.load(imagePath);
         }
     }
 
-    qDebug() << "Pixmap for result display, null:" << pixmap.isNull() << "size:" << pixmap.size();
+    qDebug() << "Final pixmap for result display, null:" << pixmap.isNull() << "size:" << pixmap.size();
 
     if (!pixmap.isNull()) {
         // 根据任务类型使用不同的显示方式

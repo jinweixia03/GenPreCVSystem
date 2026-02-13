@@ -290,8 +290,6 @@ private slots:
     // ========== 工具菜单槽函数 ==========
 
     void on_actionSettings_triggered();
-    void on_actionProcess_triggered();
-    void on_actionStop_triggered();
     void on_actionBatchProcess_triggered();
 
     // ========== 帮助菜单槽函数 ==========

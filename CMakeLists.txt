@@ -205,6 +205,14 @@ target_include_directories(GenPreCVSystem PUBLIC
 set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_AUTOUIC_SEARCH_PATHS} ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/ui)
 set(CMAKE_AUTOMOC_MACRO_NAMES ${CMAKE_AUTOMOC_MACRO_NAMES} ${CMAKE_AUTOMOC_MACRO_NAMES})
 
+# 复制模型文件到构建目录
+add_custom_command(TARGET GenPreCVSystem POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/resources/models"
+    "$<TARGET_FILE_DIR:GenPreCVSystem>/models"
+    COMMENT "Copying models to output directory"
+)
+
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(GenPreCVSystem)
 endif()

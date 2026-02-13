@@ -109,6 +109,8 @@
     </property>
     <addaction name="actionSettings"/>
     <addaction name="separator"/>
+    <addaction name="actionBatchProcess"/>
+    <addaction name="separator"/>
     <addaction name="actionProcess"/>
     <addaction name="actionStop"/>
    </widget>
@@ -521,6 +523,17 @@
    </property>
    <property name="toolTip">
     <string>打开设置对话框</string>
+   </property>
+  </action>
+  <action name="actionBatchProcess">
+   <property name="text">
+    <string>批量处理(&amp;B)...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+B</string>
+   </property>
+   <property name="toolTip">
+    <string>批量处理文件夹中的图像</string>
    </property>
   </action>
   <action name="actionProcess">

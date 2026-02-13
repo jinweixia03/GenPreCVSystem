@@ -2,6 +2,10 @@
 #include "./ui_mainwindow.h"
 #include "../controllers/taskcontroller.h"
 #include "../controllers/parameterpanelfactory.h"
+#include "../utils/recentfilesmanager.h"
+#include "../utils/appsettings.h"
+#include "../views/settingsdialog.h"
+#include "../views/batchprocessdialog.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QDir>
@@ -432,6 +436,8 @@ MainWindow::MainWindow(QWidget *parent)
     , textEditLog(nullptr)
     , taskActionGroup(nullptr)
     , m_currentTask(CVTask::ImageClassification)
+    , m_recentFilesManager(nullptr)
+    , m_batchProcessDialog(nullptr)
 {
     ui->setupUi(this);
 
@@ -439,6 +445,12 @@ MainWindow::MainWindow(QWidget *parent)
     setupImageViewer();
     setupDockWidgets();
     setupTaskMenus();
+
+    // 初始化最近文件管理器
+    m_recentFilesManager = new GenPreCVSystem::Utils::RecentFilesManager(this);
+    m_recentFilesManager->setupMenu(ui->menuFile, ui->actionExit);
+    connect(m_recentFilesManager, &GenPreCVSystem::Utils::RecentFilesManager::recentFileTriggered,
+            this, &MainWindow::onRecentFileTriggered);
 
     logMessage("应用程序已启动");
     logMessage("提示：使用\"文件\"菜单打开图片，或双击文件浏览器中的图片");
@@ -517,6 +529,11 @@ bool MainWindow::loadImage(const QString &filePath)
 
     // 更新当前引用
     updateCurrentTabRef();
+
+    // 添加到最近文件列表
+    if (m_recentFilesManager) {
+        m_recentFilesManager->addFile(filePath);
+    }
 
     logMessage(QString("已加载图片: %1 [%2x%3]")
         .arg(fileName)
@@ -625,6 +642,10 @@ void MainWindow::setupDockWidgets()
     dockFileBrowser->setWidget(browserContainer);
     addDockWidget(Qt::LeftDockWidgetArea, dockFileBrowser);
 
+    // 同步停靠窗口可见性与菜单选中状态
+    connect(dockFileBrowser, &QDockWidget::visibilityChanged,
+            ui->actionShowFileBrowser, &QAction::setChecked);
+
     // ========== 创建右侧参数设置面板 ==========
     dockParameters = new QDockWidget("参数设置", this);
     dockParameters->setMinimumWidth(250);
@@ -646,6 +667,10 @@ void MainWindow::setupDockWidgets()
     dockParameters->setWidget(paramScrollArea);
     addDockWidget(Qt::RightDockWidgetArea, dockParameters);
 
+    // 同步停靠窗口可见性与菜单选中状态
+    connect(dockParameters, &QDockWidget::visibilityChanged,
+            ui->actionShowParameterPanel, &QAction::setChecked);
+
     // ========== 创建底部日志输出区域 ==========
     dockLogOutput = new QDockWidget("日志输出", this);
     dockLogOutput->setMinimumHeight(150);
@@ -661,6 +686,10 @@ void MainWindow::setupDockWidgets()
 
     dockLogOutput->setWidget(textEditLog);
     addDockWidget(Qt::BottomDockWidgetArea, dockLogOutput);
+
+    // 同步停靠窗口可见性与菜单选中状态
+    connect(dockLogOutput, &QDockWidget::visibilityChanged,
+            ui->actionShowLogOutput, &QAction::setChecked);
 }
 
 /**
@@ -1390,65 +1419,15 @@ void MainWindow::on_actionTaskEdgeDetection_triggered()
  */
 void MainWindow::on_actionSettings_triggered()
 {
-    QDialog dialog(this);
-    dialog.setWindowTitle("设置");
-    dialog.resize(450, 350);
-
-    QVBoxLayout *mainLayout = new QVBoxLayout(&dialog);
-
-    // 图片设置组
-    QGroupBox *imageGroup = new QGroupBox("图片设置", &dialog);
-    QFormLayout *imageLayout = new QFormLayout(imageGroup);
-
-    QSpinBox *qualitySpinBox = new QSpinBox(&dialog);
-    qualitySpinBox->setRange(1, 100);
-    qualitySpinBox->setValue(100);
-    qualitySpinBox->setSuffix(" %");
-    imageLayout->addRow("默认保存质量:", qualitySpinBox);
-
-    QComboBox *formatCombo = new QComboBox(&dialog);
-    formatCombo->addItem("PNG", "png");
-    formatCombo->addItem("JPEG", "jpg");
-    formatCombo->addItem("BMP", "bmp");
-    imageLayout->addRow("默认保存格式:", formatCombo);
-
-    mainLayout->addWidget(imageGroup);
-
-    // 视图设置组
-    QGroupBox *viewGroup = new QGroupBox("视图设置", &dialog);
-    QVBoxLayout *viewLayout = new QVBoxLayout(viewGroup);
-
-    QCheckBox *autoFitCheckBox = new QCheckBox("打开图片时自动适应窗口", &dialog);
-    autoFitCheckBox->setChecked(true);
-    viewLayout->addWidget(autoFitCheckBox);
-
-    QCheckBox *smoothCheckBox = new QCheckBox("启用平滑缩放", &dialog);
-    smoothCheckBox->setChecked(true);
-    viewLayout->addWidget(smoothCheckBox);
-
-    mainLayout->addWidget(viewGroup);
-
-    mainLayout->addStretch();
-
-    // 按钮栏
-    QHBoxLayout *buttonLayout = new QHBoxLayout();
-    QPushButton *okButton = new QPushButton("确定", &dialog);
-    QPushButton *cancelButton = new QPushButton("取消", &dialog);
-    buttonLayout->addStretch();
-    buttonLayout->addWidget(okButton);
-    buttonLayout->addWidget(cancelButton);
-    mainLayout->addLayout(buttonLayout);
-
-    // 连接信号
-    connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
-    connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
-
-    if (dialog.exec() == QDialog::Accepted) {
-        // 应用设置（此处可以保存设置到配置文件）
-        logMessage(QString("设置已保存: 质量=%1%, 格式=%2")
-            .arg(qualitySpinBox->value())
-            .arg(formatCombo->currentData().toString()));
-    }
+    GenPreCVSystem::Views::SettingsDialog dialog(this);
+    connect(&dialog, &GenPreCVSystem::Views::SettingsDialog::settingsChanged, this, [this]() {
+        logMessage("设置已更新");
+        // 更新最近文件数量
+        if (m_recentFilesManager) {
+            m_recentFilesManager->setMaxFiles(GenPreCVSystem::Utils::AppSettings::maxRecentFiles());
+        }
+    });
+    dialog.exec();
 }
 
 /**
@@ -1465,6 +1444,34 @@ void MainWindow::on_actionProcess_triggered()
 void MainWindow::on_actionStop_triggered()
 {
     logMessage("停止处理待实现");
+}
+
+/**
+ * @brief 批量处理
+ */
+void MainWindow::on_actionBatchProcess_triggered()
+{
+    if (!m_batchProcessDialog) {
+        m_batchProcessDialog = new GenPreCVSystem::Views::BatchProcessDialog(this);
+        m_batchProcessDialog->setYOLOService(m_taskController->yoloService());
+    }
+
+    // 设置当前任务类型和模型
+    m_batchProcessDialog->setTaskType(static_cast<GenPreCVSystem::Models::CVTask>(m_currentTask));
+
+    m_batchProcessDialog->show();
+    m_batchProcessDialog->raise();
+    m_batchProcessDialog->activateWindow();
+}
+
+/**
+ * @brief 最近文件被点击
+ */
+void MainWindow::onRecentFileTriggered(const QString &filePath)
+{
+    if (loadImage(filePath)) {
+        logMessage(QString("从最近文件打开: %1").arg(filePath));
+    }
 }
 
 // ==================== 帮助菜单槽函数 ====================

@@ -23,6 +23,12 @@ namespace GenPreCVSystem {
 namespace Controllers {
 class TaskController;
 }
+namespace Utils {
+class RecentFilesManager;
+}
+namespace Views {
+class BatchProcessDialog;
+}
 }
 
 QT_BEGIN_NAMESPACE
@@ -286,6 +292,7 @@ private slots:
     void on_actionSettings_triggered();
     void on_actionProcess_triggered();
     void on_actionStop_triggered();
+    void on_actionBatchProcess_triggered();
 
     // ========== 帮助菜单槽函数 ==========
 
@@ -349,6 +356,11 @@ private slots:
     void onImageDataDropped(const QByteArray &imageData, const QString &sourceName);
     void onFolderDropped(const QString &folderPath);
 
+    /**
+     * @brief 最近文件被点击
+     */
+    void onRecentFileTriggered(const QString &filePath);
+
 private:
     Ui::MainWindow *ui;  ///< UI 界面对象
 
@@ -363,6 +375,8 @@ private:
     QActionGroup *taskActionGroup; ///< 任务动作组（互斥选择）
     CVTask m_currentTask;          ///< 当前选中的任务
     GenPreCVSystem::Controllers::TaskController *m_taskController; ///< 任务控制器
+    GenPreCVSystem::Utils::RecentFilesManager *m_recentFilesManager; ///< 最近文件管理器
+    GenPreCVSystem::Views::BatchProcessDialog *m_batchProcessDialog; ///< 批量处理对话框
 
     // ========== 参数面板控件 ==========
 

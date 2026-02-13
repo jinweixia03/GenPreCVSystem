@@ -1,4 +1,5 @@
 #include "ui/mainwindow.h"
+#include "ui/splashscreen.h"
 #include "utils/exceptions.h"
 #include "utils/errordialog.h"
 
@@ -12,6 +13,7 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QTextStream>
+#include <QTimer>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -165,7 +167,22 @@ int main(int argc, char *argv[])
         QApplication::setApplicationVersion("1.0.0");
         QApplication::setOrganizationName("GenPreCV");
 
-        // 安装翻译器
+        // ========== 显示启动画面 ==========
+        GenPreCVSystem::UI::SplashScreen *splash = new GenPreCVSystem::UI::SplashScreen();
+        splash->setVersion("1.0.0");
+        splash->show();
+
+        // 处理事件，确保启动画面立即显示
+        a.processEvents();
+
+        // ========== 模拟加载过程 ==========
+        // 在实际应用中，这里可以执行初始化操作
+
+        // 加载翻译器
+        splash->setStatus("正在加载语言包...");
+        splash->setProgress(10);
+        a.processEvents();
+
         QTranslator translator;
         const QStringList uiLanguages = QLocale::system().uiLanguages();
         for (const QString &locale : uiLanguages) {
@@ -176,9 +193,27 @@ int main(int argc, char *argv[])
             }
         }
 
-        // 创建主窗口
+        // 初始化主窗口
+        splash->setStatus("正在初始化主窗口...");
+        splash->setProgress(30);
+        a.processEvents();
+
         MainWindow w;
-        w.show();
+
+        // 完成加载
+        splash->setStatus("正在加载完成...");
+        splash->setProgress(80);
+        a.processEvents();
+
+        // 等待一小段时间让用户看到加载完成
+        QTimer::singleShot(300, [&]() {
+            splash->finish(200);
+        });
+
+        // 启动画面关闭后显示主窗口
+        QObject::connect(splash, &GenPreCVSystem::UI::SplashScreen::finished, [&]() {
+            w.show();
+        });
 
         // 运行事件循环
         result = a.exec();

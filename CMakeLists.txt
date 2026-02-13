@@ -90,6 +90,10 @@ set(UTILS_SOURCES
     src/utils/yoloservice.cpp
     src/utils/imageprocessservice.h
     src/utils/imageprocessservice.cpp
+    src/utils/exceptions.h
+    src/utils/exceptions.cpp
+    src/utils/errordialog.h
+    src/utils/errordialog.cpp
 )
 
 # Views

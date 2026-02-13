@@ -1,0 +1,53 @@
+name: Windows CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.5.3'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        modules: 'qtwidgets'
+        cache: true
+
+    - name: Setup MSVC Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Configure CMake
+      run: |
+        cmake -B build `
+          -G "Ninja" `
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} `
+          -DCMAKE_C_COMPILER=cl.exe `
+          -DCMAKE_CXX_COMPILER=cl.exe
+
+    - name: Build
+      run: cmake --build build --config ${{env.BUILD_TYPE}}
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: GenPreCVSystem-Windows
+        path: |
+          build/GenPreCVSystem.exe
+          build/*.dll
+        retention-days: 7

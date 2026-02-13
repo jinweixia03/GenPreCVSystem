@@ -66,6 +66,8 @@ set(PROJECT_SOURCES
         src/ui/mainwindow.cpp
         src/ui/mainwindow.h
         src/ui/mainwindow.ui
+        src/ui/splashscreen.h
+        src/ui/splashscreen.cpp
         ${TS_FILES}
 )
 
@@ -94,6 +96,12 @@ set(UTILS_SOURCES
     src/utils/exceptions.cpp
     src/utils/errordialog.h
     src/utils/errordialog.cpp
+    src/utils/appsettings.h
+    src/utils/appsettings.cpp
+    src/utils/recentfilesmanager.h
+    src/utils/recentfilesmanager.cpp
+    src/utils/exportservice.h
+    src/utils/exportservice.cpp
 )
 
 # Views
@@ -106,6 +114,10 @@ set(VIEWS_SOURCES
     src/views/imagefilefilterproxy.cpp
     src/views/detectionresultdialog.h
     src/views/detectionresultdialog.cpp
+    src/views/settingsdialog.h
+    src/views/settingsdialog.cpp
+    src/views/batchprocessdialog.h
+    src/views/batchprocessdialog.cpp
 )
 
 # Controllers

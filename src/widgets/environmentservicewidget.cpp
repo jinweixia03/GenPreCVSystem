@@ -1,3 +1,15 @@
+/**
+ * @file environmentservicewidget.cpp
+ * @brief 环境服务控件实现
+ *
+ * 提供 Python 环境和 YOLO 模型管理的共享控件：
+ * - Python 环境选择（自动扫描 conda/venv/system）
+ * - 服务状态显示（运行中/未启动）
+ * - 模型选择和加载状态
+ *
+ * 所有 AI 任务共享此控件，切换任务时保持状态
+ */
+
 #include "environmentservicewidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -46,7 +58,7 @@ void EnvironmentServiceWidget::setupUI()
     mainLayout->setSpacing(10);
 
     // ========== Python 环境与服务状态 ==========
-    QGroupBox *envGroup = new QGroupBox("Python 环境", this);
+    QGroupBox *envGroup = new QGroupBox("🐍 Python 环境", this);
     QVBoxLayout *envLayout = new QVBoxLayout(envGroup);
 
     // 环境下拉框（无刷新按钮）
@@ -56,16 +68,16 @@ void EnvironmentServiceWidget::setupUI()
     envLayout->addWidget(m_envCombo);
 
     // 服务状态标签
-    m_lblServiceStatus = new QLabel("正在扫描环境...", this);
+    m_lblServiceStatus = new QLabel("⏳ 正在扫描环境...", this);
     m_lblServiceStatus->setObjectName("lblServiceStatus");
-    m_lblServiceStatus->setStyleSheet("color: #888; font-size: 11px;");
+    m_lblServiceStatus->setStyleSheet("color: #333333; font-size: 11px;");
     m_lblServiceStatus->setWordWrap(true);
     envLayout->addWidget(m_lblServiceStatus);
 
     mainLayout->addWidget(envGroup);
 
     // ========== 模型设置 ==========
-    QGroupBox *modelGroup = new QGroupBox("模型设置", this);
+    QGroupBox *modelGroup = new QGroupBox("🎯 模型设置", this);
     QVBoxLayout *modelLayout = new QVBoxLayout(modelGroup);
 
     // 模型下拉选择 + 浏览按钮（水平布局）
@@ -75,17 +87,17 @@ void EnvironmentServiceWidget::setupUI()
     m_cmbModelSelect->setPlaceholderText("选择模型...");
     modelSelectLayout->addWidget(m_cmbModelSelect, 1);
 
-    m_btnBrowseModel = new QPushButton("浏览...", this);
+    m_btnBrowseModel = new QPushButton("📂 浏览...", this);
     m_btnBrowseModel->setObjectName("btnBrowseModel");
-    m_btnBrowseModel->setFixedWidth(60);
+    m_btnBrowseModel->setFixedWidth(70);
     modelSelectLayout->addWidget(m_btnBrowseModel);
 
     modelLayout->addLayout(modelSelectLayout);
 
     // 模型状态标签（左对齐，与服务状态一致）
-    m_lblModelStatus = new QLabel("模型状态: 未加载", this);
+    m_lblModelStatus = new QLabel("📦 模型状态: 未加载", this);
     m_lblModelStatus->setObjectName("lblModelStatus");
-    m_lblModelStatus->setStyleSheet("color: #666; font-size: 11px;");
+    m_lblModelStatus->setStyleSheet("color: #333333; font-size: 11px;");
     m_lblModelStatus->setWordWrap(true);
     modelLayout->addWidget(m_lblModelStatus);
 
@@ -122,42 +134,42 @@ void EnvironmentServiceWidget::setYOLOService(Utils::YOLOService *service)
 void EnvironmentServiceWidget::updateServiceStatus()
 {
     if (!m_yoloService) {
-        m_lblServiceStatus->setText("服务状态: 未初始化");
-        m_lblServiceStatus->setStyleSheet("color: #cc0000; font-size: 11px;");
+        m_lblServiceStatus->setText("⚠ 服务状态: 未初始化");
+        m_lblServiceStatus->setStyleSheet("color: #cc3300; font-size: 11px;");
         return;
     }
 
     if (m_yoloService->isRunning()) {
-        m_lblServiceStatus->setText("服务状态: 运行中 ✓");
-        m_lblServiceStatus->setStyleSheet("color: #228B22; font-size: 11px; font-weight: bold;");
+        m_lblServiceStatus->setText("● 服务状态: 运行中");
+        m_lblServiceStatus->setStyleSheet("color: #0066cc; font-size: 11px; font-weight: bold;");
     } else {
-        m_lblServiceStatus->setText("服务状态: 未启动");
-        m_lblServiceStatus->setStyleSheet("color: #666; font-size: 11px;");
+        m_lblServiceStatus->setText("○ 服务状态: 未启动");
+        m_lblServiceStatus->setStyleSheet("color: #666666; font-size: 11px;");
     }
 }
 
 void EnvironmentServiceWidget::updateModelStatus()
 {
     if (!m_yoloService || !m_yoloService->isRunning()) {
-        m_lblModelStatus->setText("模型状态: 服务未启动");
-        m_lblModelStatus->setStyleSheet("color: #888; font-size: 11px;");
+        m_lblModelStatus->setText("📦 模型状态: 服务未启动");
+        m_lblModelStatus->setStyleSheet("color: #888888; font-size: 11px;");
         return;
     }
 
     if (m_currentModelPath.isEmpty()) {
-        m_lblModelStatus->setText("模型状态: 未选择");
-        m_lblModelStatus->setStyleSheet("color: #888; font-size: 11px;");
+        m_lblModelStatus->setText("📦 模型状态: 未选择");
+        m_lblModelStatus->setStyleSheet("color: #888888; font-size: 11px;");
         return;
     }
 
     // 检查当前选择的模型是否已加载
     if (m_yoloService->isModelLoaded() && m_currentModelPath == m_loadedModelPath) {
         QString modelName = QFileInfo(m_currentModelPath).fileName();
-        m_lblModelStatus->setText(QString("模型: %1 ✓").arg(modelName));
-        m_lblModelStatus->setStyleSheet("color: #228B22; font-size: 11px; font-weight: bold;");
+        m_lblModelStatus->setText(QString("● 模型: %1").arg(modelName));
+        m_lblModelStatus->setStyleSheet("color: #0066cc; font-size: 11px; font-weight: bold;");
     } else {
-        m_lblModelStatus->setText("模型状态: 未加载");
-        m_lblModelStatus->setStyleSheet("color: #888; font-size: 11px;");
+        m_lblModelStatus->setText("○ 模型状态: 未加载");
+        m_lblModelStatus->setStyleSheet("color: #666666; font-size: 11px;");
     }
 }
 
@@ -169,7 +181,7 @@ void EnvironmentServiceWidget::updateRunButtonState(bool enabled)
 void EnvironmentServiceWidget::scanEnvironments()
 {
     m_envCombo->clear();
-    m_lblServiceStatus->setText("正在扫描环境...");
+    m_lblServiceStatus->setText("🔍 正在扫描环境...");
     m_lblServiceStatus->setStyleSheet("color: #0066cc; font-size: 11px;");
 
     // 扫描环境
@@ -188,7 +200,7 @@ void EnvironmentServiceWidget::scanEnvironments()
         // 设置有 ultralytics 的项的背景色
         if (env.hasUltralytics) {
             int index = m_envCombo->count() - 1;
-            m_envCombo->setItemData(index, QColor(100, 180, 100), Qt::BackgroundRole);
+            m_envCombo->setItemData(index, QColor(0, 102, 204), Qt::BackgroundRole);  // #0066cc
         }
 
         // 检查是否匹配已保存的环境
@@ -215,8 +227,8 @@ void EnvironmentServiceWidget::scanEnvironments()
             m_envCombo->setCurrentIndex(0);
         }
     } else {
-        m_lblServiceStatus->setText("未找到 Python 环境，请检查安装");
-        m_lblServiceStatus->setStyleSheet("color: #cc0000; font-size: 11px;");
+        m_lblServiceStatus->setText("⚠ 未找到 Python 环境，请检查安装");
+        m_lblServiceStatus->setStyleSheet("color: #cc3300; font-size: 11px;");
     }
 }
 
@@ -236,20 +248,20 @@ void EnvironmentServiceWidget::tryAutoStartService()
 
     QString envText = m_envCombo->itemText(index);
     if (!envText.contains("✓")) {
-        m_lblServiceStatus->setText("当前环境缺少 ultralytics，请选择带 ✓ 的环境");
+        m_lblServiceStatus->setText("⚠ 当前环境缺少 ultralytics，请选择带 ✓ 的环境");
         m_lblServiceStatus->setStyleSheet("color: #FF8C00; font-size: 11px;");
         return;
     }
 
     // 自动启动服务
-    m_lblServiceStatus->setText("正在启动服务...");
+    m_lblServiceStatus->setText("⏳ 正在启动服务...");
     m_lblServiceStatus->setStyleSheet("color: #0066cc; font-size: 11px;");
 
     bool success = m_yoloService->start();
 
     if (success) {
-        m_lblServiceStatus->setText("服务状态: 运行中 ✓");
-        m_lblServiceStatus->setStyleSheet("color: #228B22; font-size: 11px; font-weight: bold;");
+        m_lblServiceStatus->setText("● 服务状态: 运行中");
+        m_lblServiceStatus->setStyleSheet("color: #0066cc; font-size: 11px; font-weight: bold;");
 
         emit logMessage("YOLO 服务已自动启动");
         emit serviceStarted();
@@ -257,8 +269,8 @@ void EnvironmentServiceWidget::tryAutoStartService()
         // 尝试自动加载模型
         QTimer::singleShot(100, this, &EnvironmentServiceWidget::tryAutoLoadModel);
     } else {
-        m_lblServiceStatus->setText("服务启动失败");
-        m_lblServiceStatus->setStyleSheet("color: #cc0000; font-size: 11px;");
+        m_lblServiceStatus->setText("✗ 服务启动失败");
+        m_lblServiceStatus->setStyleSheet("color: #cc3300; font-size: 11px;");
         emit logMessage("YOLO 服务启动失败");
     }
 }
@@ -282,7 +294,7 @@ void EnvironmentServiceWidget::tryAutoLoadModel()
         return;
     }
 
-    m_lblModelStatus->setText("正在加载模型...");
+    m_lblModelStatus->setText("⏳ 正在加载模型...");
     m_lblModelStatus->setStyleSheet("color: #0066cc; font-size: 11px;");
 
     bool success = m_yoloService->loadModel(m_currentModelPath);
@@ -294,8 +306,8 @@ void EnvironmentServiceWidget::tryAutoLoadModel()
         emit modelLoaded(m_currentModelPath);
     } else {
         m_loadedModelPath.clear();  // 加载失败，清除已加载路径
-        m_lblModelStatus->setText("模型状态: 加载失败");
-        m_lblModelStatus->setStyleSheet("color: #cc0000; font-size: 11px;");
+        m_lblModelStatus->setText("✗ 模型状态: 加载失败");
+        m_lblModelStatus->setStyleSheet("color: #cc3300; font-size: 11px;");
         emit logMessage("模型加载失败");
     }
 }
@@ -444,8 +456,8 @@ void EnvironmentServiceWidget::updateModelList(Models::CVTask task)
     QDir dirObj(modelDir);
     if (!dirObj.exists()) {
         m_cmbModelSelect->setPlaceholderText("未找到模型目录");
-        m_lblModelStatus->setText("模型状态: 目录不存在");
-        m_lblModelStatus->setStyleSheet("color: #cc0000; font-size: 11px;");
+        m_lblModelStatus->setText("📁 模型状态: 目录不存在");
+        m_lblModelStatus->setStyleSheet("color: #cc3300; font-size: 11px;");
         emit logMessage(QString("模型目录不存在: %1").arg(modelDir));
         return;
     }
@@ -458,8 +470,8 @@ void EnvironmentServiceWidget::updateModelList(Models::CVTask task)
 
     if (fileList.isEmpty()) {
         m_cmbModelSelect->setPlaceholderText("未找到模型文件");
-        m_lblModelStatus->setText("模型状态: 无可用模型");
-        m_lblModelStatus->setStyleSheet("color: #888; font-size: 11px;");
+        m_lblModelStatus->setText("📦 模型状态: 无可用模型");
+        m_lblModelStatus->setStyleSheet("color: #888888; font-size: 11px;");
         emit logMessage(QString("未在 %1 目录找到模型文件").arg(modelDir));
     } else {
         int selectIndex = -1;
@@ -481,8 +493,8 @@ void EnvironmentServiceWidget::updateModelList(Models::CVTask task)
             m_cmbModelSelect->setCurrentIndex(0);
         }
 
-        m_lblModelStatus->setText(QString("已找到 %1 个模型").arg(fileList.size()));
-        m_lblModelStatus->setStyleSheet("color: #666; font-size: 11px;");
+        m_lblModelStatus->setText(QString("✓ 已找到 %1 个模型").arg(fileList.size()));
+        m_lblModelStatus->setStyleSheet("color: #ffffff; font-size: 11px;");
         emit logMessage(QString("已扫描到 %1 个可用模型").arg(fileList.size()));
     }
 }

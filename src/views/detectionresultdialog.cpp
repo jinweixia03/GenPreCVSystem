@@ -1,3 +1,16 @@
+/**
+ * @file detectionresultdialog.cpp
+ * @brief 检测结果对话框实现
+ *
+ * 显示 YOLO 推理结果，支持：
+ * - 目标检测结果展示（边界框、标签、置信度）
+ * - 语义分割结果展示（掩码可视化）
+ * - 图像分类结果展示（Top-K 预测列表）
+ * - 姿态/关键点检测结果展示（骨架连线）
+ *
+ * 支持原图与处理结果的对比显示
+ */
+
 #include "detectionresultdialog.h"
 #include "../utils/exportservice.h"
 #include "../utils/appsettings.h"
@@ -46,7 +59,7 @@ DetectionResultDialog::DetectionResultDialog(QWidget *parent)
     setupUI();
     setupClassificationUI();
     setupComparisonUI();
-    setWindowTitle(tr("结果查看器"));
+    setWindowTitle(tr("📊 结果查看器"));
     resize(1000, 750);
 }
 
@@ -61,13 +74,13 @@ void DetectionResultDialog::setupUI()
     mainLayout->setContentsMargins(10, 10, 10, 10);
 
     // 顶部信息栏
-    m_lblInfo = new QLabel(tr("暂无结果"), this);
+    m_lblInfo = new QLabel(tr("ℹ 暂无结果"), this);
     m_lblInfo->setStyleSheet(
         "QLabel { "
-        "  background-color: #2d2d2d; "
-        "  color: #ffffff; "
+        "  background-color: #e8f4fc; "
+        "  color: #000000; "
         "  padding: 8px; "
-        "  border-radius: 4px; "
+        "  border: 1px solid #0066cc; "
         "  font-size: 13px; "
         "}"
     );
@@ -82,8 +95,7 @@ void DetectionResultDialog::setupUI()
     m_imageView->setMinimumSize(400, 300);
     m_imageView->setStyleSheet(
         "ImageView { "
-        "  border: 2px solid #3d3d3d; "
-        "  border-radius: 4px; "
+        "  border: 2px solid #0066cc; "
         "}"
     );
     m_contentSplitter->addWidget(m_imageView);
@@ -104,10 +116,9 @@ void DetectionResultDialog::setupUI()
     m_txtDetails->setMaximumHeight(120);
     m_txtDetails->setStyleSheet(
         "QTextEdit { "
-        "  background-color: #1e1e1e; "
-        "  color: #d4d4d4; "
-        "  border: 1px solid #3d3d3d; "
-        "  border-radius: 4px; "
+        "  background-color: #f5f5f5; "
+        "  color: #000000; "
+        "  border: 1px solid #c0c0c0; "
         "  font-family: Consolas, 'Courier New', monospace; "
         "  font-size: 12px; "
         "}"
@@ -119,17 +130,17 @@ void DetectionResultDialog::setupUI()
     QHBoxLayout *toolbarLayout = new QHBoxLayout();
     toolbarLayout->setSpacing(6);
 
-    m_btnZoomIn = new QPushButton(tr("放大"), this);
-    m_btnZoomIn->setFixedWidth(70);
+    m_btnZoomIn = new QPushButton(tr("🔍+ 放大"), this);
+    m_btnZoomIn->setFixedWidth(85);
 
-    m_btnZoomOut = new QPushButton(tr("缩小"), this);
-    m_btnZoomOut->setFixedWidth(70);
+    m_btnZoomOut = new QPushButton(tr("🔍- 缩小"), this);
+    m_btnZoomOut->setFixedWidth(85);
 
-    m_btnFit = new QPushButton(tr("适应窗口"), this);
-    m_btnFit->setFixedWidth(80);
+    m_btnFit = new QPushButton(tr("⊞ 适应窗口"), this);
+    m_btnFit->setFixedWidth(95);
 
-    m_btnActualSize = new QPushButton(tr("实际大小"), this);
-    m_btnActualSize->setFixedWidth(80);
+    m_btnActualSize = new QPushButton(tr("▢ 实际大小"), this);
+    m_btnActualSize->setFixedWidth(95);
 
     toolbarLayout->addWidget(m_btnZoomIn);
     toolbarLayout->addWidget(m_btnZoomOut);
@@ -139,18 +150,19 @@ void DetectionResultDialog::setupUI()
 
     QString btnStyle =
         "QPushButton { "
-        "  background-color: #3d3d3d; "
-        "  color: #ffffff; "
-        "  border: none; "
+        "  background-color: #ffffff; "
+        "  color: #000000; "
+        "  border: 1px solid #c0c0c0; "
         "  padding: 6px 12px; "
-        "  border-radius: 4px; "
         "  font-size: 12px; "
         "} "
         "QPushButton:hover { "
-        "  background-color: #4d4d4d; "
+        "  background-color: #e0e0e0; "
+        "  border: 1px solid #0066cc; "
         "} "
         "QPushButton:pressed { "
-        "  background-color: #2d2d2d; "
+        "  background-color: #0066cc; "
+        "  color: #ffffff; "
         "}";
     m_btnZoomIn->setStyleSheet(btnStyle);
     m_btnZoomOut->setStyleSheet(btnStyle);
@@ -168,60 +180,57 @@ void DetectionResultDialog::setupUI()
     QHBoxLayout *bottomLayout = new QHBoxLayout();
     bottomLayout->setSpacing(10);
 
-    m_btnSave = new QPushButton(tr("保存结果图像"), this);
-    m_btnSave->setFixedWidth(120);
+    m_btnSave = new QPushButton(tr("💾 保存结果图像"), this);
+    m_btnSave->setFixedWidth(135);
     m_btnSave->setStyleSheet(
         "QPushButton { "
-        "  background-color: #0078d4; "
+        "  background-color: #0066cc; "
         "  color: #ffffff; "
         "  border: none; "
         "  padding: 8px 16px; "
-        "  border-radius: 4px; "
         "  font-size: 13px; "
         "} "
         "QPushButton:hover { "
-        "  background-color: #1a86d9; "
+        "  background-color: #0077dd; "
         "} "
         "QPushButton:pressed { "
-        "  background-color: #006cbd; "
+        "  background-color: #0055aa; "
         "}"
     );
 
-    m_btnExport = new QPushButton(tr("导出数据"), this);
-    m_btnExport->setFixedWidth(100);
+    m_btnExport = new QPushButton(tr("📤 导出数据"), this);
+    m_btnExport->setFixedWidth(110);
     m_btnExport->setStyleSheet(
         "QPushButton { "
-        "  background-color: #107c10; "
+        "  background-color: #0066cc; "
         "  color: #ffffff; "
-        "  border: none; "
+        "  border: 1px solid #0077dd; "
         "  padding: 8px 16px; "
-        "  border-radius: 4px; "
         "  font-size: 13px; "
         "} "
         "QPushButton:hover { "
-        "  background-color: #0e6e0e; "
+        "  background-color: #0077dd; "
         "} "
         "QPushButton:pressed { "
-        "  background-color: #0c5a0c; "
+        "  background-color: #0055aa; "
         "}"
     );
 
-    m_btnClose = new QPushButton(tr("关闭"), this);
-    m_btnClose->setFixedWidth(80);
+    m_btnClose = new QPushButton(tr("✕ 关闭"), this);
+    m_btnClose->setFixedWidth(90);
     m_btnClose->setStyleSheet(
         "QPushButton { "
-        "  background-color: #5d5d5d; "
-        "  color: #ffffff; "
+        "  background-color: #e0e0e0; "
+        "  color: #000000; "
         "  border: none; "
         "  padding: 8px 16px; "
-        "  border-radius: 4px; "
         "  font-size: 13px; "
         "} "
         "QPushButton:hover { "
-        "  background-color: #6d6d6d; "
+        "  background-color: #c0c0c0; "
         "} "
         "QPushButton:pressed { "
-        "  background-color: #4d4d4d; "
+        "  background-color: #a0a0a0; "
         "}"
     );
 
@@ -238,7 +247,7 @@ void DetectionResultDialog::setupUI()
 
     setStyleSheet(
         "QDialog { "
-        "  background-color: #252526; "
+        "  background-color: #ffffff; "
         "}"
     );
 }
@@ -254,10 +263,10 @@ void DetectionResultDialog::setupClassificationUI()
     m_lblTopPrediction = new QLabel(m_classificationPanel);
     m_lblTopPrediction->setStyleSheet(
         "QLabel { "
-        "  background-color: #1e6b3d; "
+        "  background-color: #0066cc; "
         "  color: #ffffff; "
         "  padding: 12px; "
-        "  border-radius: 6px; "
+        "  border: 1px solid #0077dd; "
         "  font-size: 16px; "
         "  font-weight: bold; "
         "}"
@@ -275,24 +284,24 @@ void DetectionResultDialog::setupClassificationUI()
     m_classificationTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_classificationTable->setStyleSheet(
         "QTableWidget { "
-        "  background-color: #1e1e1e; "
-        "  color: #d4d4d4; "
-        "  gridline-color: #3d3d3d; "
-        "  border: 1px solid #3d3d3d; "
-        "  border-radius: 4px; "
+        "  background-color: #ffffff; "
+        "  color: #000000; "
+        "  gridline-color: #c0c0c0; "
+        "  border: 1px solid #c0c0c0; "
         "} "
         "QTableWidget::item { "
         "  padding: 6px; "
         "} "
         "QTableWidget::item:selected { "
-        "  background-color: #094771; "
+        "  background-color: #0066cc; "
+        "  color: #ffffff; "
         "} "
         "QHeaderView::section { "
-        "  background-color: #2d2d2d; "
-        "  color: #ffffff; "
+        "  background-color: #e0e0e0; "
+        "  color: #000000; "
         "  padding: 6px; "
         "  border: none; "
-        "  border-bottom: 1px solid #3d3d3d; "
+        "  border-bottom: 1px solid #0066cc; "
         "}"
     );
     layout->addWidget(m_classificationTable);
@@ -317,9 +326,9 @@ void DetectionResultDialog::setupComparisonUI()
     originalLayout->setContentsMargins(0, 0, 0, 0);
     QLabel *lblOriginal = new QLabel(tr("原始图像"), this);
     lblOriginal->setAlignment(Qt::AlignCenter);
-    lblOriginal->setStyleSheet("QLabel { color: #888; font-size: 12px; }");
+    lblOriginal->setStyleSheet("QLabel { color: #000000; font-size: 12px; }");
     m_originalView = new ImageView(this);
-    m_originalView->setStyleSheet("ImageView { border: 2px solid #3d3d3d; border-radius: 4px; }");
+    m_originalView->setStyleSheet("ImageView { border: 2px solid #0066cc; }");
     originalLayout->addWidget(lblOriginal);
     originalLayout->addWidget(m_originalView);
 
@@ -329,9 +338,9 @@ void DetectionResultDialog::setupComparisonUI()
     processedLayout->setContentsMargins(0, 0, 0, 0);
     QLabel *lblProcessed = new QLabel(tr("处理后图像"), this);
     lblProcessed->setAlignment(Qt::AlignCenter);
-    lblProcessed->setStyleSheet("QLabel { color: #888; font-size: 12px; }");
+    lblProcessed->setStyleSheet("QLabel { color: #000000; font-size: 12px; }");
     m_processedView = new ImageView(this);
-    m_processedView->setStyleSheet("ImageView { border: 2px solid #3d3d3d; border-radius: 4px; }");
+    m_processedView->setStyleSheet("ImageView { border: 2px solid #0066cc; }");
     processedLayout->addWidget(lblProcessed);
     processedLayout->addWidget(m_processedView);
 
@@ -756,7 +765,7 @@ void DetectionResultDialog::updateClassificationPanel()
 
         // 第一行高亮
         if (i == 0) {
-            QColor highlightColor(30, 107, 61);
+            QColor highlightColor(0, 102, 204);  // #0066cc
             rankItem->setBackground(highlightColor);
             labelItem->setBackground(highlightColor);
             confItem->setBackground(highlightColor);

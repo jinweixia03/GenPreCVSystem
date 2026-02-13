@@ -1,3 +1,15 @@
+/**
+ * @file batchprocessdialog.cpp
+ * @brief 批量处理对话框实现
+ *
+ * 支持对文件夹中的图像进行批量 YOLO 推理处理：
+ * - 支持图像分类、目标检测、语义分割、姿态检测
+ * - 可配置置信度、IOU 阈值、图像尺寸
+ * - 支持递归扫描子目录
+ * - 导出为 ZIP 格式（包含 images 和 labels 文件夹）
+ * - 生成 YOLO 格式标注文件
+ */
+
 #include "batchprocessdialog.h"
 #include "../utils/appsettings.h"
 
@@ -58,7 +70,7 @@ BatchProcessDialog::~BatchProcessDialog()
 
 void BatchProcessDialog::setupUI()
 {
-    setWindowTitle(tr("批量处理"));
+    setWindowTitle(tr("⚡ 批量处理"));
     setMinimumSize(550, 520);
     resize(600, 560);
 
@@ -67,7 +79,7 @@ void BatchProcessDialog::setupUI()
     mainLayout->setContentsMargins(15, 15, 15, 15);
 
     // ========== 1. 任务和模型设置组 ==========
-    QGroupBox *taskGroup = new QGroupBox(tr("任务和模型"), this);
+    QGroupBox *taskGroup = new QGroupBox(tr("🎯 任务和模型"), this);
     QFormLayout *taskLayout = new QFormLayout(taskGroup);
 
     // 任务类型选择（顺序：分类→检测→分割→Pose）
@@ -84,21 +96,21 @@ void BatchProcessDialog::setupUI()
     modelLayout->setContentsMargins(0, 0, 0, 0);
     m_comboModel = new QComboBox();
     m_comboModel->setMinimumWidth(200);
-    m_btnBrowseModel = new QPushButton(tr("浏览..."));
-    m_btnBrowseModel->setFixedWidth(70);
+    m_btnBrowseModel = new QPushButton(tr("📂 浏览..."));
+    m_btnBrowseModel->setFixedWidth(80);
     modelLayout->addWidget(m_comboModel, 1);
     modelLayout->addWidget(m_btnBrowseModel);
     taskLayout->addRow(tr("模型:"), modelWidget);
 
     // 模型状态
-    m_lblModelStatus = new QLabel(tr("未加载"));
-    m_lblModelStatus->setStyleSheet("color: #f0ad4e;");
+    m_lblModelStatus = new QLabel(tr("○ 模型状态: 未加载"));
+    m_lblModelStatus->setStyleSheet("color: #666666;");
     taskLayout->addRow("", m_lblModelStatus);
 
     mainLayout->addWidget(taskGroup);
 
     // ========== 2. 检测参数组 ==========
-    QGroupBox *paramsGroup = new QGroupBox(tr("检测参数"), this);
+    QGroupBox *paramsGroup = new QGroupBox(tr("⚙ 检测参数"), this);
     QHBoxLayout *paramsLayout = new QHBoxLayout(paramsGroup);
 
     paramsLayout->addWidget(new QLabel(tr("置信度:")));
@@ -133,7 +145,7 @@ void BatchProcessDialog::setupUI()
     mainLayout->addWidget(paramsGroup);
 
     // ========== 3. 输入设置组 ==========
-    QGroupBox *inputGroup = new QGroupBox(tr("输入设置"), this);
+    QGroupBox *inputGroup = new QGroupBox(tr("📂 输入设置"), this);
     QFormLayout *inputLayout = new QFormLayout(inputGroup);
 
     // 文件夹选择
@@ -143,8 +155,8 @@ void BatchProcessDialog::setupUI()
     m_editFolder = new QLineEdit();
     m_editFolder->setReadOnly(true);
     m_editFolder->setPlaceholderText(tr("选择要处理的文件夹..."));
-    m_btnBrowse = new QPushButton(tr("浏览..."));
-    m_btnBrowse->setFixedWidth(70);
+    m_btnBrowse = new QPushButton(tr("📂 浏览..."));
+    m_btnBrowse->setFixedWidth(80);
     folderLayout->addWidget(m_editFolder, 1);
     folderLayout->addWidget(m_btnBrowse);
     inputLayout->addRow(tr("文件夹:"), folderWidget);
@@ -168,7 +180,7 @@ void BatchProcessDialog::setupUI()
     mainLayout->addWidget(inputGroup);
 
     // ========== 4. 进度区域 ==========
-    QGroupBox *progressGroup = new QGroupBox(tr("处理进度"), this);
+    QGroupBox *progressGroup = new QGroupBox(tr("📊 处理进度"), this);
     QVBoxLayout *progressLayout = new QVBoxLayout(progressGroup);
 
     // 进度条
@@ -193,10 +205,10 @@ void BatchProcessDialog::setupUI()
     // ========== 按钮区域 ==========
     QHBoxLayout *buttonLayout = new QHBoxLayout();
 
-    m_btnStart = new QPushButton(tr("开始处理"), this);
-    m_btnStop = new QPushButton(tr("停止"), this);
-    m_btnExport = new QPushButton(tr("导出 ZIP"), this);
-    m_btnClose = new QPushButton(tr("关闭"), this);
+    m_btnStart = new QPushButton(tr("▶ 开始处理"), this);
+    m_btnStop = new QPushButton(tr("⏹ 停止"), this);
+    m_btnExport = new QPushButton(tr("📦 导出 ZIP"), this);
+    m_btnClose = new QPushButton(tr("✕ 关闭"), this);
 
     m_btnStop->setEnabled(false);
     m_btnExport->setEnabled(false);
@@ -228,21 +240,25 @@ void BatchProcessDialog::setupUI()
 void BatchProcessDialog::applyStyles()
 {
     setStyleSheet(
-        "QDialog { background-color: #1e1e1e; color: #cccccc; }"
-        "QGroupBox { border: 1px solid #3e3e42; border-radius: 4px; margin-top: 8px; padding-top: 8px; color: #cccccc; font-weight: bold; }"
-        "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }"
-        "QLabel { color: #cccccc; }"
-        "QLineEdit { background-color: #3c3c3c; color: #cccccc; border: 1px solid #3e3e42; padding: 5px; border-radius: 2px; }"
-        "QSpinBox, QDoubleSpinBox { background-color: #3c3c3c; color: #cccccc; border: 1px solid #3e3e42; padding: 3px; border-radius: 2px; }"
-        "QComboBox { background-color: #3c3c3c; color: #cccccc; border: 1px solid #3e3e42; padding: 5px; border-radius: 2px; }"
+        "QDialog { background-color: #ffffff; color: #000000; }"
+        "QGroupBox { border: 1px solid #0066cc; border-radius: 0px; margin-top: 8px; padding-top: 8px; color: #000000; font-weight: bold; }"
+        "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; color: #0066cc; }"
+        "QLabel { color: #000000; }"
+        "QLineEdit { background-color: #ffffff; color: #000000; border: 1px solid #c0c0c0; padding: 5px; border-radius: 0px; }"
+        "QLineEdit:focus { border: 1px solid #0066cc; }"
+        "QSpinBox, QDoubleSpinBox { background-color: #ffffff; color: #000000; border: 1px solid #c0c0c0; padding: 3px; border-radius: 0px; }"
+        "QSpinBox:focus, QDoubleSpinBox:focus { border: 1px solid #0066cc; }"
+        "QComboBox { background-color: #ffffff; color: #000000; border: 1px solid #c0c0c0; padding: 5px; border-radius: 0px; }"
+        "QComboBox:focus { border: 1px solid #0066cc; }"
         "QComboBox::drop-down { border: none; }"
-        "QCheckBox { color: #cccccc; }"
-        "QProgressBar { border: 1px solid #3e3e42; border-radius: 3px; text-align: center; background-color: #3c3c3c; }"
-        "QProgressBar::chunk { background-color: #0078d4; border-radius: 2px; }"
-        "QPushButton { background-color: #0e639c; color: #ffffff; border: none; padding: 8px 16px; border-radius: 2px; min-width: 70px; }"
-        "QPushButton:hover { background-color: #1177bb; }"
-        "QPushButton:pressed { background-color: #0e639c; }"
-        "QPushButton:disabled { background-color: #3c3c3c; color: #666666; }"
+        "QComboBox QAbstractItemView { background-color: #ffffff; color: #000000; selection-background-color: #0066cc; selection-color: #ffffff; }"
+        "QCheckBox { color: #000000; }"
+        "QProgressBar { border: 1px solid #0066cc; border-radius: 0px; text-align: center; background-color: #e0e0e0; color: #000000; }"
+        "QProgressBar::chunk { background-color: #0066cc; border-radius: 0px; }"
+        "QPushButton { background-color: #0066cc; color: #ffffff; border: none; padding: 8px 16px; border-radius: 0px; min-width: 70px; }"
+        "QPushButton:hover { background-color: #0077dd; }"
+        "QPushButton:pressed { background-color: #0055aa; }"
+        "QPushButton:disabled { background-color: #c0c0c0; color: #666666; }"
     );
 }
 
@@ -254,8 +270,8 @@ void BatchProcessDialog::setYOLOService(Utils::YOLOService *service)
     if (m_comboModel->count() > 0 && !m_comboModel->itemData(0).isNull()) {
         m_comboModel->setCurrentIndex(0);
         m_currentModelPath = m_comboModel->itemData(0).toString();
-        m_lblModelStatus->setText(tr("已选择: %1").arg(QFileInfo(m_currentModelPath).fileName()));
-        m_lblModelStatus->setStyleSheet("color: #5bc0de;");
+        m_lblModelStatus->setText(tr("✓ 已选择: %1").arg(QFileInfo(m_currentModelPath).fileName()));
+        m_lblModelStatus->setStyleSheet("color: #0066cc;");
     }
 }
 
@@ -323,8 +339,8 @@ void BatchProcessDialog::updateModelList()
     // 如果没有找到模型，添加提示
     if (m_comboModel->count() == 0) {
         m_comboModel->addItem(tr("请选择模型文件..."), QString());
-        m_lblModelStatus->setText(tr("未找到模型 (目录: %1)").arg(modelDir));
-        m_lblModelStatus->setStyleSheet("color: #d9534f;");
+        m_lblModelStatus->setText(tr("⚠ 未找到模型 (目录: %1)").arg(modelDir));
+        m_lblModelStatus->setStyleSheet("color: #cc3300;");
     }
 }
 
@@ -370,8 +386,8 @@ void BatchProcessDialog::onTaskTypeChanged(int index)
     if (m_comboModel->count() > 0 && !m_comboModel->itemData(0).isNull()) {
         m_comboModel->setCurrentIndex(0);
         m_currentModelPath = m_comboModel->itemData(0).toString();
-        m_lblModelStatus->setText(tr("已选择: %1").arg(QFileInfo(m_currentModelPath).fileName()));
-        m_lblModelStatus->setStyleSheet("color: #5bc0de;");
+        m_lblModelStatus->setText(tr("✓ 已选择: %1").arg(QFileInfo(m_currentModelPath).fileName()));
+        m_lblModelStatus->setStyleSheet("color: #0066cc;");
     }
 }
 
@@ -380,8 +396,8 @@ void BatchProcessDialog::onModelSelectionChanged(int index)
     QString modelPath = m_comboModel->itemData(index).toString();
     if (!modelPath.isEmpty()) {
         m_currentModelPath = modelPath;
-        m_lblModelStatus->setText(tr("已选择: %1").arg(QFileInfo(modelPath).fileName()));
-        m_lblModelStatus->setStyleSheet("color: #5bc0de;");
+        m_lblModelStatus->setText(tr("✓ 已选择: %1").arg(QFileInfo(modelPath).fileName()));
+        m_lblModelStatus->setStyleSheet("color: #0066cc;");
     }
 }
 
@@ -442,12 +458,12 @@ void BatchProcessDialog::onStartProcessing()
 
         if (!m_yoloService->loadModel(m_currentModelPath)) {
             QMessageBox::warning(this, tr("提示"), tr("模型加载失败"));
-            m_lblModelStatus->setText(tr("加载失败"));
-            m_lblModelStatus->setStyleSheet("color: #d9534f;");
+            m_lblModelStatus->setText(tr("✗ 模型状态: 加载失败"));
+            m_lblModelStatus->setStyleSheet("color: #cc3300;");
             return;
         }
-        m_lblModelStatus->setText(tr("已加载: %1").arg(QFileInfo(m_currentModelPath).fileName()));
-        m_lblModelStatus->setStyleSheet("color: #5cb85c;");
+        m_lblModelStatus->setText(tr("● 已加载: %1").arg(QFileInfo(m_currentModelPath).fileName()));
+        m_lblModelStatus->setStyleSheet("color: #0066cc; font-weight: bold;");
     }
 
     // 重置状态

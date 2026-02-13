@@ -1,3 +1,13 @@
+/**
+ * @file settingsdialog.cpp
+ * @brief 设置对话框实现
+ *
+ * 应用程序设置界面，包含：
+ * - 目录设置（默认打开/导出目录）
+ * - 常规设置（最近文件数量、自动保存）
+ * - 导出设置（格式、时间戳、元数据）
+ */
+
 #include "settingsdialog.h"
 #include "../utils/appsettings.h"
 
@@ -38,7 +48,7 @@ SettingsDialog::~SettingsDialog()
 
 void SettingsDialog::setupUI()
 {
-    setWindowTitle(tr("设置"));
+    setWindowTitle(tr("⚙ 设置"));
     setMinimumSize(450, 400);
     resize(500, 450);
 
@@ -47,7 +57,7 @@ void SettingsDialog::setupUI()
     mainLayout->setContentsMargins(20, 20, 20, 20);
 
     // ========== 目录设置组 ==========
-    QGroupBox *dirGroup = new QGroupBox(tr("目录设置"), this);
+    QGroupBox *dirGroup = new QGroupBox(tr("📁 目录设置"), this);
     QFormLayout *dirLayout = new QFormLayout(dirGroup);
     dirLayout->setSpacing(10);
 
@@ -57,7 +67,7 @@ void SettingsDialog::setupUI()
     openDirLayout->setContentsMargins(0, 0, 0, 0);
     m_editOpenDir = new QLineEdit();
     m_editOpenDir->setPlaceholderText(tr("选择默认打开目录"));
-    QPushButton *btnBrowseOpen = new QPushButton(tr("浏览..."));
+    QPushButton *btnBrowseOpen = new QPushButton(tr("📂 浏览..."));
     btnBrowseOpen->setFixedWidth(70);
     connect(btnBrowseOpen, &QPushButton::clicked, this, &SettingsDialog::onBrowseOpenDirectory);
     openDirLayout->addWidget(m_editOpenDir);
@@ -70,7 +80,7 @@ void SettingsDialog::setupUI()
     exportDirLayout->setContentsMargins(0, 0, 0, 0);
     m_editExportDir = new QLineEdit();
     m_editExportDir->setPlaceholderText(tr("选择默认导出目录"));
-    QPushButton *btnBrowseExport = new QPushButton(tr("浏览..."));
+    QPushButton *btnBrowseExport = new QPushButton(tr("📂 浏览..."));
     btnBrowseExport->setFixedWidth(70);
     connect(btnBrowseExport, &QPushButton::clicked, this, &SettingsDialog::onBrowseExportDirectory);
     exportDirLayout->addWidget(m_editExportDir);
@@ -80,7 +90,7 @@ void SettingsDialog::setupUI()
     mainLayout->addWidget(dirGroup);
 
     // ========== 常规设置组 ==========
-    QGroupBox *generalGroup = new QGroupBox(tr("常规设置"), this);
+    QGroupBox *generalGroup = new QGroupBox(tr("⚙ 常规设置"), this);
     QFormLayout *generalLayout = new QFormLayout(generalGroup);
     generalLayout->setSpacing(10);
 
@@ -97,7 +107,7 @@ void SettingsDialog::setupUI()
     mainLayout->addWidget(generalGroup);
 
     // ========== 导出设置组 ==========
-    QGroupBox *exportGroup = new QGroupBox(tr("导出设置"), this);
+    QGroupBox *exportGroup = new QGroupBox(tr("📤 导出设置"), this);
     QFormLayout *exportLayout = new QFormLayout(exportGroup);
     exportLayout->setSpacing(10);
 
@@ -122,10 +132,10 @@ void SettingsDialog::setupUI()
     // ========== 按钮区域 ==========
     QDialogButtonBox *buttonBox = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Apply | QDialogButtonBox::Reset | QDialogButtonBox::Cancel);
-    buttonBox->button(QDialogButtonBox::Ok)->setText(tr("确定"));
-    buttonBox->button(QDialogButtonBox::Apply)->setText(tr("应用"));
-    buttonBox->button(QDialogButtonBox::Reset)->setText(tr("恢复默认"));
-    buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("取消"));
+    buttonBox->button(QDialogButtonBox::Ok)->setText(tr("✓ 确定"));
+    buttonBox->button(QDialogButtonBox::Apply)->setText(tr("▶ 应用"));
+    buttonBox->button(QDialogButtonBox::Reset)->setText(tr("↺ 恢复默认"));
+    buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("✕ 取消"));
 
     connect(buttonBox, &QDialogButtonBox::accepted, this, &SettingsDialog::onAccept);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
@@ -138,13 +148,13 @@ void SettingsDialog::setupUI()
 void SettingsDialog::applyStyles()
 {
     setStyleSheet(
-        "QDialog { background-color: #1e1e1e; color: #cccccc; }"
-        "QLabel { color: #cccccc; }"
+        "QDialog { background-color: #ffffff; color: #000000; }"
+        "QLabel { color: #000000; }"
         "QGroupBox { "
-        "  color: #cccccc; "
+        "  color: #000000; "
         "  font-weight: bold; "
-        "  border: 1px solid #3e3e42; "
-        "  border-radius: 4px; "
+        "  border: 1px solid #0066cc; "
+        "  border-radius: 0px; "
         "  margin-top: 10px; "
         "  padding-top: 10px; "
         "} "
@@ -152,48 +162,50 @@ void SettingsDialog::applyStyles()
         "  subcontrol-origin: margin; "
         "  left: 10px; "
         "  padding: 0 5px; "
+        "  color: #0066cc; "
         "} "
         "QLineEdit { "
-        "  background-color: #3c3c3c; "
-        "  color: #cccccc; "
-        "  border: 1px solid #3e3e42; "
-        "  border-radius: 2px; "
+        "  background-color: #ffffff; "
+        "  color: #000000; "
+        "  border: 1px solid #c0c0c0; "
+        "  border-radius: 0px; "
         "  padding: 5px; "
         "} "
-        "QLineEdit:focus { border: 1px solid #0078d4; } "
+        "QLineEdit:focus { border: 1px solid #0066cc; } "
         "QSpinBox { "
-        "  background-color: #3c3c3c; "
-        "  color: #cccccc; "
-        "  border: 1px solid #3e3e42; "
-        "  border-radius: 2px; "
+        "  background-color: #ffffff; "
+        "  color: #000000; "
+        "  border: 1px solid #c0c0c0; "
+        "  border-radius: 0px; "
         "  padding: 3px; "
         "} "
-        "QSpinBox:focus { border: 1px solid #0078d4; } "
+        "QSpinBox:focus { border: 1px solid #0066cc; } "
         "QComboBox { "
-        "  background-color: #3c3c3c; "
-        "  color: #cccccc; "
-        "  border: 1px solid #3e3e42; "
-        "  border-radius: 2px; "
+        "  background-color: #ffffff; "
+        "  color: #000000; "
+        "  border: 1px solid #c0c0c0; "
+        "  border-radius: 0px; "
         "  padding: 5px; "
         "} "
-        "QComboBox:focus { border: 1px solid #0078d4; } "
+        "QComboBox:focus { border: 1px solid #0066cc; } "
         "QComboBox::drop-down { border: none; width: 20px; } "
         "QComboBox QAbstractItemView { "
-        "  background-color: #3c3c3c; "
-        "  color: #cccccc; "
-        "  selection-background-color: #0078d4; "
+        "  background-color: #ffffff; "
+        "  color: #000000; "
+        "  selection-background-color: #0066cc; "
+        "  selection-color: #ffffff; "
         "} "
-        "QCheckBox { color: #cccccc; } "
+        "QCheckBox { color: #000000; } "
         "QCheckBox::indicator { width: 16px; height: 16px; } "
         "QPushButton { "
-        "  background-color: #0e639c; "
+        "  background-color: #0066cc; "
         "  color: #ffffff; "
         "  border: none; "
         "  padding: 6px 16px; "
-        "  border-radius: 2px; "
+        "  border-radius: 0px; "
         "} "
-        "QPushButton:hover { background-color: #1177bb; } "
-        "QPushButton:pressed { background-color: #0e639c; } "
+        "QPushButton:hover { background-color: #0077dd; } "
+        "QPushButton:pressed { background-color: #0055aa; } "
         "QDialogButtonBox QPushButton { min-width: 70px; }"
     );
 }

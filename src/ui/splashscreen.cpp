@@ -1,3 +1,14 @@
+/**
+ * @file splashscreen.cpp
+ * @brief 启动画面实现
+ *
+ * 在应用程序启动时显示的启动画面，包含：
+ * - 应用程序 Logo
+ * - 版本信息
+ * - 加载进度条
+ * - 状态文本
+ */
+
 #include "splashscreen.h"
 #include <QPainter>
 #include <QPainterPath>
@@ -41,19 +52,42 @@ void SplashScreen::setupUI()
     m_mainLayout->setSpacing(10);
     m_mainLayout->setContentsMargins(30, 40, 30, 30);
 
-    // ========== Logo 区域 ==========
+    // ========== Logo 区域（带装饰图标）==========
+    QHBoxLayout *logoLayout = new QHBoxLayout();
+    logoLayout->setSpacing(8);
+
+    // 左侧装饰图标
+    QLabel *leftIcon = new QLabel(this);
+    leftIcon->setText("◇");
+    leftIcon->setStyleSheet("QLabel { font-size: 24px; color: #0066cc; background: transparent; }");
+    leftIcon->setFixedSize(30, 100);
+    leftIcon->setAlignment(Qt::AlignCenter);
+    logoLayout->addWidget(leftIcon);
+
+    // 主 Logo
     m_logoLabel = new QLabel(this);
     m_logoLabel->setAlignment(Qt::AlignCenter);
-    // 使用文字作为 Logo（可以替换为图片）
-    m_logoLabel->setText("🔍");
+    // 使用蓝色方块图标作为 Logo
+    m_logoLabel->setText("▣");
     m_logoLabel->setStyleSheet(
         "QLabel {"
-        "  font-size: 64px;"
+        "  font-size: 72px;"
+        "  color: #0066cc;"
         "  background: transparent;"
         "}"
     );
     m_logoLabel->setFixedSize(100, 100);
-    m_mainLayout->addWidget(m_logoLabel, 0, Qt::AlignCenter);
+    logoLayout->addWidget(m_logoLabel);
+
+    // 右侧装饰图标
+    QLabel *rightIcon = new QLabel(this);
+    rightIcon->setText("◇");
+    rightIcon->setStyleSheet("QLabel { font-size: 24px; color: #0066cc; background: transparent; }");
+    rightIcon->setFixedSize(30, 100);
+    rightIcon->setAlignment(Qt::AlignCenter);
+    logoLayout->addWidget(rightIcon);
+
+    m_mainLayout->addLayout(logoLayout);
 
     // ========== 标题区域 ==========
     m_titleLabel = new QLabel(this);
@@ -63,7 +97,7 @@ void SplashScreen::setupUI()
         "QLabel {"
         "  font-size: 28px;"
         "  font-weight: bold;"
-        "  color: #ffffff;"
+        "  color: #000000;"
         "  background: transparent;"
         "}"
     );
@@ -76,7 +110,7 @@ void SplashScreen::setupUI()
     m_subtitleLabel->setStyleSheet(
         "QLabel {"
         "  font-size: 12px;"
-        "  color: #888888;"
+        "  color: #333333;"
         "  background: transparent;"
         "}"
     );
@@ -85,25 +119,49 @@ void SplashScreen::setupUI()
     // ========== 弹性空间 ==========
     m_mainLayout->addStretch();
 
-    // ========== 状态文本 ==========
+    // ========== 状态文本（带加载图标）==========
+    QHBoxLayout *statusLayout = new QHBoxLayout();
+    statusLayout->setSpacing(8);
+
+    // 加载动画图标
+    QLabel *loadingIcon = new QLabel(this);
+    loadingIcon->setText("⟳");
+    loadingIcon->setStyleSheet("QLabel { font-size: 14px; color: #0066cc; background: transparent; }");
+    loadingIcon->setFixedSize(20, 20);
+    loadingIcon->setAlignment(Qt::AlignCenter);
+    statusLayout->addWidget(loadingIcon);
+
     m_statusLabel = new QLabel(this);
     m_statusLabel->setAlignment(Qt::AlignCenter);
     m_statusLabel->setText("正在初始化...");
     m_statusLabel->setStyleSheet(
         "QLabel {"
         "  font-size: 11px;"
-        "  color: #aaaaaa;"
+        "  color: #666666;"
         "  background: transparent;"
         "}"
     );
-    m_mainLayout->addWidget(m_statusLabel);
+    statusLayout->addWidget(m_statusLabel);
+
+    // 右侧装饰点
+    QLabel *dotIcon = new QLabel(this);
+    dotIcon->setText("●");
+    dotIcon->setStyleSheet("QLabel { font-size: 6px; color: #0066cc; background: transparent; }");
+    dotIcon->setFixedSize(20, 20);
+    dotIcon->setAlignment(Qt::AlignCenter);
+    statusLayout->addWidget(dotIcon);
+
+    statusLayout->setStretch(0, 1);
+    statusLayout->setStretch(1, 10);
+    statusLayout->setStretch(2, 1);
+    m_mainLayout->addLayout(statusLayout);
 
     // ========== 进度条 ==========
     m_progressBar = new QProgressBar(this);
     m_progressBar->setRange(0, 100);
     m_progressBar->setValue(0);
     m_progressBar->setTextVisible(false);
-    m_progressBar->setFixedHeight(4);
+    m_progressBar->setFixedHeight(6);
     m_mainLayout->addWidget(m_progressBar);
 
     // ========== 版本信息 ==========
@@ -113,7 +171,7 @@ void SplashScreen::setupUI()
     m_versionLabel->setStyleSheet(
         "QLabel {"
         "  font-size: 10px;"
-        "  color: #666666;"
+        "  color: #999999;"
         "  background: transparent;"
         "}"
     );
@@ -122,17 +180,16 @@ void SplashScreen::setupUI()
 
 void SplashScreen::applyStyle()
 {
-    // 进度条样式
+    // 进度条样式 - 白色背景，蓝色进度
     m_progressBar->setStyleSheet(
         "QProgressBar {"
-        "  background-color: #2d2d30;"
-        "  border: none;"
-        "  border-radius: 2px;"
+        "  background-color: #e0e0e0;"
+        "  border: 1px solid #0066cc;"
+        "  border-radius: 0px;"
         "}"
         "QProgressBar::chunk {"
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0,"
-        "    stop:0 #0078d4, stop:1 #00bcf2);"
-        "  border-radius: 2px;"
+        "  background-color: #0066cc;"
+        "  border-radius: 0px;"
         "}"
     );
 }
@@ -142,18 +199,41 @@ void SplashScreen::paintEvent(QPaintEvent *event)
     Q_UNUSED(event);
 
     QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
+    // 移除抗锯齿以保持方正边缘
+    painter.setRenderHint(QPainter::Antialiasing, false);
 
-    // 绘制圆角背景
-    QPainterPath path;
-    path.addRoundedRect(rect(), 12, 12);
+    // 绘制方正背景（无圆角）- 白色背景
+    painter.fillRect(rect(), QColor("#ffffff"));
 
-    // 深色背景
-    painter.fillPath(path, QColor("#1e1e1e"));
+    // 蓝色边框
+    painter.setPen(QPen(QColor("#0066cc"), 2));
+    painter.drawRect(rect().adjusted(1, 1, -1, -1));
 
-    // 边框
-    painter.setPen(QPen(QColor("#3e3e42"), 1));
-    painter.drawPath(path);
+    // 绘制角落装饰图案
+    painter.setPen(QPen(QColor("#0066cc"), 1));
+
+    // 左上角装饰
+    int cornerSize = 20;
+    int margin = 8;
+    painter.drawLine(margin, margin, margin + cornerSize, margin);
+    painter.drawLine(margin, margin, margin, margin + cornerSize);
+
+    // 右上角装饰
+    painter.drawLine(width() - margin - cornerSize, margin, width() - margin, margin);
+    painter.drawLine(width() - margin, margin, width() - margin, margin + cornerSize);
+
+    // 左下角装饰
+    painter.drawLine(margin, height() - margin, margin + cornerSize, height() - margin);
+    painter.drawLine(margin, height() - margin - cornerSize, margin, height() - margin);
+
+    // 右下角装饰
+    painter.drawLine(width() - margin - cornerSize, height() - margin, width() - margin, height() - margin);
+    painter.drawLine(width() - margin, height() - margin - cornerSize, width() - margin, height() - margin);
+
+    // 绘制中间分隔线
+    painter.setPen(QPen(QColor("#e0e0e0"), 1, Qt::DashLine));
+    int lineY = 180;
+    painter.drawLine(50, lineY, width() - 50, lineY);
 }
 
 void SplashScreen::setProgress(int value)

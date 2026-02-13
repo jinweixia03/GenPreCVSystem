@@ -1,3 +1,16 @@
+/**
+ * @file yoloservice.cpp
+ * @brief YOLO 推理服务实现
+ *
+ * 实现 YOLO 模型的 Python 后端通信，支持：
+ * - 目标检测 (Object Detection)
+ * - 实例分割 (Instance Segmentation)
+ * - 图像分类 (Image Classification)
+ * - 姿态/关键点检测 (Pose/Keypoint Detection)
+ *
+ * 通过 QProcess 与 Python 脚本通信，使用 JSON 格式传输数据
+ */
+
 #include "yoloservice.h"
 #include <QCoreApplication>
 #include <QJsonDocument>

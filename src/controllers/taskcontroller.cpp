@@ -6,6 +6,7 @@
 #include "../utils/imageprocessservice.h"
 #include "../views/detectionresultdialog.h"
 #include "../widgets/environmentservicewidget.h"
+#include "../ui/mainwindow.h"  // 包含 ImageView 定义
 #include <QScrollArea>
 #include <QPushButton>
 #include <QLineEdit>
@@ -25,6 +26,9 @@
 #include <QCoreApplication>
 #include <QFileInfoList>
 #include <QVBoxLayout>
+#include <QTabWidget>
+#include <QDateTime>
+#include <QRandomGenerator>
 
 namespace GenPreCVSystem {
 namespace Controllers {
@@ -37,6 +41,7 @@ TaskController::TaskController(QObject *parent)
     , m_yoloService(nullptr)
     , m_imageProcessService(nullptr)
     , m_tabController(nullptr)
+    , m_tabWidget(nullptr)
     , m_resultDialog(nullptr)
     , m_envServiceWidget(nullptr)
     , m_taskParamContainer(nullptr)
@@ -234,6 +239,25 @@ void TaskController::setTabController(TabController *tabController)
     m_tabController = tabController;
 }
 
+void TaskController::setTabWidget(QTabWidget *tabWidget)
+{
+    m_tabWidget = tabWidget;
+}
+
+// 辅助方法：获取当前 ImageView
+::ImageView* TaskController::getCurrentImageView() const
+{
+    // 使用 QTabWidget 获取当前的 ImageView
+    if (m_tabWidget) {
+        QWidget *currentWidget = m_tabWidget->currentWidget();
+        if (currentWidget) {
+            // 使用全局命名空间的 ImageView（定义在 mainwindow.h 中）
+            return qobject_cast<::ImageView*>(currentWidget);
+        }
+    }
+    return nullptr;
+}
+
 QString TaskController::getCurrentImagePath() const
 {
     // 优先使用 TabController
@@ -245,6 +269,62 @@ QString TaskController::getCurrentImagePath() const
     }
     // 回退到直接设置的路径
     return m_currentImagePath;
+}
+
+QString TaskController::getCurrentImageForInference()
+{
+    // 清理之前的临时文件
+    cleanupTempImage();
+
+    // 获取当前显示的图片（直接从 ImageView 获取，确保是处理后的图片）
+    QPixmap currentPixmap;
+    ::ImageView *imageView = getCurrentImageView();
+    if (imageView) {
+        currentPixmap = imageView->pixmap();
+    }
+
+    // 如果无法从 ImageView 获取，尝试从 TabController 获取
+    if (currentPixmap.isNull() && m_tabController) {
+        currentPixmap = m_tabController->currentPixmap();
+    }
+
+    // 如果无法获取当前图片，回退到原始文件路径
+    if (currentPixmap.isNull()) {
+        return getCurrentImagePath();
+    }
+
+    // 使用应用程序目录创建临时文件（避免中文路径问题）
+    QString appDir = QCoreApplication::applicationDirPath();
+    QString tempDirPath = appDir + "/temp";
+    QDir tempDir(tempDirPath);
+    if (!tempDir.exists()) {
+        tempDir.mkpath(".");
+    }
+
+    // 生成唯一的临时文件名（使用时间戳和随机数，确保只包含 ASCII 字符）
+    QString tempFileName = QString("inference_%1_%2.png")
+        .arg(QDateTime::currentMSecsSinceEpoch())
+        .arg(QRandomGenerator::global()->bounded(10000));
+    QString tempPath = tempDirPath + "/" + tempFileName;
+
+    // 保存图片到临时文件
+    if (!currentPixmap.save(tempPath, "PNG")) {
+        emit logMessage("无法保存临时图像");
+        return getCurrentImagePath();
+    }
+
+    m_tempImagePath = tempPath;
+
+    emit logMessage(QString("使用当前显示的图像进行推理"));
+    return tempPath;
+}
+
+void TaskController::cleanupTempImage()
+{
+    if (!m_tempImagePath.isEmpty() && QFile::exists(m_tempImagePath)) {
+        QFile::remove(m_tempImagePath);
+        m_tempImagePath.clear();
+    }
 }
 
 void TaskController::setCurrentImagePath(const QString &imagePath)
@@ -439,8 +519,8 @@ void TaskController::connectParameterPanelSignals()
 
     if (runDetectionBtn) {
         connect(runDetectionBtn, &QPushButton::clicked, this, [this, panel, runDetectionBtn]() {
-            // 获取当前图像路径
-            QString imagePath = getCurrentImagePath();
+            // 获取当前显示的图像用于推理（可能是处理后的图像）
+            QString imagePath = getCurrentImageForInference();
 
             if (imagePath.isEmpty()) {
                 emit logMessage("请先打开一张图像");
@@ -466,6 +546,9 @@ void TaskController::connectParameterPanelSignals()
 
             runDetection(imagePath, confThreshold, iouThreshold, imageSize);
 
+            // 清理临时文件
+            cleanupTempImage();
+
             // 恢复按钮状态
             runDetectionBtn->setEnabled(true);
             runDetectionBtn->setText("执行检测");
@@ -477,8 +560,8 @@ void TaskController::connectParameterPanelSignals()
 
     if (runSegmentationBtn) {
         connect(runSegmentationBtn, &QPushButton::clicked, this, [this, panel, runSegmentationBtn]() {
-            // 获取当前图像路径
-            QString imagePath = getCurrentImagePath();
+            // 获取当前显示的图像用于推理（可能是处理后的图像）
+            QString imagePath = getCurrentImageForInference();
 
             if (imagePath.isEmpty()) {
                 emit logMessage("请先打开一张图像");
@@ -508,6 +591,9 @@ void TaskController::connectParameterPanelSignals()
 
             runSegmentation(imagePath, confThreshold, iouThreshold, imageSize);
 
+            // 清理临时文件
+            cleanupTempImage();
+
             // 恢复按钮状态
             runSegmentationBtn->setEnabled(true);
             runSegmentationBtn->setText("执行语义分割");
@@ -518,8 +604,8 @@ void TaskController::connectParameterPanelSignals()
     QPushButton *runClassificationBtn = panel->findChild<QPushButton *>("btnRunClassification");
     if (runClassificationBtn) {
         connect(runClassificationBtn, &QPushButton::clicked, this, [this, panel, runClassificationBtn]() {
-            // 获取当前图像路径
-            QString imagePath = getCurrentImagePath();
+            // 获取当前显示的图像用于推理（可能是处理后的图像）
+            QString imagePath = getCurrentImageForInference();
 
             if (imagePath.isEmpty()) {
                 emit logMessage("请先打开一张图像");
@@ -536,6 +622,9 @@ void TaskController::connectParameterPanelSignals()
 
             runClassification(imagePath, topK);
 
+            // 清理临时文件
+            cleanupTempImage();
+
             // 恢复按钮状态
             runClassificationBtn->setEnabled(true);
             runClassificationBtn->setText("执行分类");
@@ -546,8 +635,8 @@ void TaskController::connectParameterPanelSignals()
     QPushButton *runKeyPointBtn = panel->findChild<QPushButton *>("btnRunKeyPoint");
     if (runKeyPointBtn) {
         connect(runKeyPointBtn, &QPushButton::clicked, this, [this, panel, runKeyPointBtn]() {
-            // 获取当前图像路径
-            QString imagePath = getCurrentImagePath();
+            // 获取当前显示的图像用于推理（可能是处理后的图像）
+            QString imagePath = getCurrentImageForInference();
 
             if (imagePath.isEmpty()) {
                 emit logMessage("请先打开一张图像");
@@ -573,6 +662,9 @@ void TaskController::connectParameterPanelSignals()
 
             runKeypointDetection(imagePath, confThreshold, 0.45f, imageSize);
 
+            // 清理临时文件
+            cleanupTempImage();
+
             // 恢复按钮状态
             runKeyPointBtn->setEnabled(true);
             runKeyPointBtn->setText("执行关键点检测");
@@ -583,7 +675,8 @@ void TaskController::connectParameterPanelSignals()
     QPushButton *runEnhanceBtn = panel->findChild<QPushButton *>("btnRunEnhancement");
     if (runEnhanceBtn) {
         connect(runEnhanceBtn, &QPushButton::clicked, this, [this, panel]() {
-            QString imagePath = getCurrentImagePath();
+            // 获取当前显示的图像用于处理（可能是已处理过的图像）
+            QString imagePath = getCurrentImageForInference();
             if (imagePath.isEmpty()) {
                 emit logMessage("请先打开一张图像");
                 return;
@@ -600,6 +693,9 @@ void TaskController::connectParameterPanelSignals()
             int sharpness = sharpSlider ? sharpSlider->value() : 0;
 
             runImageEnhancement(imagePath, brightness, contrast, saturation, sharpness);
+
+            // 清理临时文件
+            cleanupTempImage();
         });
     }
 
@@ -607,7 +703,8 @@ void TaskController::connectParameterPanelSignals()
     QPushButton *runDenoiseBtn = panel->findChild<QPushButton *>("btnRunDenoising");
     if (runDenoiseBtn) {
         connect(runDenoiseBtn, &QPushButton::clicked, this, [this, panel]() {
-            QString imagePath = getCurrentImagePath();
+            // 获取当前显示的图像用于处理
+            QString imagePath = getCurrentImageForInference();
             if (imagePath.isEmpty()) {
                 emit logMessage("请先打开一张图像");
                 return;
@@ -622,6 +719,9 @@ void TaskController::connectParameterPanelSignals()
             double sigma = sigmaSpinBox ? sigmaSpinBox->value() : 1.0;
 
             runImageDenoising(imagePath, method, kernelSize, sigma);
+
+            // 清理临时文件
+            cleanupTempImage();
         });
     }
 
@@ -629,7 +729,8 @@ void TaskController::connectParameterPanelSignals()
     QPushButton *runEdgeBtn = panel->findChild<QPushButton *>("btnRunEdgeDetection");
     if (runEdgeBtn) {
         connect(runEdgeBtn, &QPushButton::clicked, this, [this, panel]() {
-            QString imagePath = getCurrentImagePath();
+            // 获取当前显示的图像用于处理
+            QString imagePath = getCurrentImageForInference();
             if (imagePath.isEmpty()) {
                 emit logMessage("请先打开一张图像");
                 return;
@@ -646,6 +747,9 @@ void TaskController::connectParameterPanelSignals()
             int apertureSize = apertureSpinBox ? apertureSpinBox->value() : 3;
 
             runEdgeDetection(imagePath, method, threshold1, threshold2, apertureSize);
+
+            // 清理临时文件
+            cleanupTempImage();
         });
     }
 }
@@ -675,31 +779,38 @@ void TaskController::showResultDialog(const Utils::YOLODetectionResult &result)
         m_resultDialog = new Views::DetectionResultDialog(nullptr);
     }
 
-    // 获取当前图像路径
-    QString imagePath = getCurrentImagePath();
-    qDebug() << "Current image path:" << imagePath;
+    // 获取当前显示的图片（从 ImageView 获取，确保是处理后的图片）
+    QPixmap pixmap;
+    ::ImageView *imageView = getCurrentImageView();
+    if (imageView) {
+        pixmap = imageView->pixmap();
+    }
 
-    if (!imagePath.isEmpty() && QFile::exists(imagePath)) {
-        // 加载图像并设置结果
-        QPixmap pixmap(imagePath);
-        qDebug() << "Pixmap loaded, null:" << pixmap.isNull() << "size:" << pixmap.size();
-
-        if (!pixmap.isNull()) {
-            // 根据任务类型使用不同的显示方式
-            if (m_currentTask == Models::CVTask::SemanticSegmentation) {
-                // 使用蒙版显示分割结果
-                m_resultDialog->setSegmentationResult(pixmap, result, m_maskAlpha, m_showBoxes, m_showLabels);
-                emit logMessage(tr("语义分割结果已显示"));
-            } else {
-                // 使用边界框显示检测结果
-                m_resultDialog->setResult(pixmap, result, m_showLabels);
-                emit logMessage(tr("检测结果已显示"));
-            }
-            m_resultDialog->show();
-            m_resultDialog->raise();
-            m_resultDialog->activateWindow();
-            return;
+    // 如果无法从 ImageView 获取，尝试从文件路径加载
+    if (pixmap.isNull()) {
+        QString imagePath = getCurrentImagePath();
+        if (!imagePath.isEmpty() && QFile::exists(imagePath)) {
+            pixmap.load(imagePath);
         }
+    }
+
+    qDebug() << "Pixmap for result display, null:" << pixmap.isNull() << "size:" << pixmap.size();
+
+    if (!pixmap.isNull()) {
+        // 根据任务类型使用不同的显示方式
+        if (m_currentTask == Models::CVTask::SemanticSegmentation) {
+            // 使用蒙版显示分割结果
+            m_resultDialog->setSegmentationResult(pixmap, result, m_maskAlpha, m_showBoxes, m_showLabels);
+            emit logMessage(tr("语义分割结果已显示"));
+        } else {
+            // 使用边界框显示检测结果
+            m_resultDialog->setResult(pixmap, result, m_showLabels);
+            emit logMessage(tr("检测结果已显示"));
+        }
+        m_resultDialog->show();
+        m_resultDialog->raise();
+        m_resultDialog->activateWindow();
+        return;
     }
 
     // 如果无法加载图像，显示错误
@@ -828,10 +939,7 @@ void TaskController::runClassification(const QString &imagePath, int topK)
         return;
     }
 
-    // 保存当前图像路径，用于显示结果
-    m_currentImagePath = imagePath;
-
-    emit logMessage(QString("执行图像分类: %1").arg(imagePath));
+    emit logMessage(QString("执行图像分类"));
 
     // 同步调用分类
     Utils::YOLOClassificationResult result = m_yoloService->classify(imagePath, topK);
@@ -842,8 +950,18 @@ void TaskController::runClassification(const QString &imagePath, int topK)
             m_resultDialog = new Views::DetectionResultDialog(nullptr);
         }
 
-        // 获取当前图像用于显示
-        QPixmap pixmap(imagePath);
+        // 获取当前显示的图像用于显示（从 ImageView 获取，确保是处理后的图片）
+        QPixmap pixmap;
+        ::ImageView *imageView = getCurrentImageView();
+        if (imageView) {
+            pixmap = imageView->pixmap();
+        }
+
+        // 如果无法从 ImageView 获取，尝试从文件加载
+        if (pixmap.isNull()) {
+            pixmap.load(imagePath);
+        }
+
         m_resultDialog->setClassificationResult(pixmap, result);
         m_resultDialog->show();
         m_resultDialog->raise();
@@ -868,10 +986,7 @@ void TaskController::runKeypointDetection(const QString &imagePath, float confTh
         return;
     }
 
-    // 保存当前图像路径，用于显示结果
-    m_currentImagePath = imagePath;
-
-    emit logMessage(QString("执行关键点检测: %1").arg(imagePath));
+    emit logMessage(QString("执行关键点检测"));
 
     // 同步调用关键点检测
     Utils::YOLOKeypointResult result = m_yoloService->keypoint(imagePath, confThreshold, iouThreshold, imageSize);
@@ -882,8 +997,18 @@ void TaskController::runKeypointDetection(const QString &imagePath, float confTh
             m_resultDialog = new Views::DetectionResultDialog(nullptr);
         }
 
-        // 获取当前图像用于显示
-        QPixmap pixmap(imagePath);
+        // 获取当前显示的图像用于显示（从 ImageView 获取，确保是处理后的图片）
+        QPixmap pixmap;
+        ::ImageView *imageView = getCurrentImageView();
+        if (imageView) {
+            pixmap = imageView->pixmap();
+        }
+
+        // 如果无法从 ImageView 获取，尝试从文件加载
+        if (pixmap.isNull()) {
+            pixmap.load(imagePath);
+        }
+
         m_resultDialog->setKeypointResult(pixmap, result, m_showBoxes, m_showLabels);
         m_resultDialog->show();
         m_resultDialog->raise();

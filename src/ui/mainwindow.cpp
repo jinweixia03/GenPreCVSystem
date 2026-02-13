@@ -179,6 +179,17 @@ void ImageView::actualSize()
 }
 
 /**
+ * @brief 获取当前显示的图片
+ */
+QPixmap ImageView::pixmap() const
+{
+    if (m_pixmapItem) {
+        return m_pixmapItem->pixmap();
+    }
+    return QPixmap();
+}
+
+/**
  * @brief 鼠标滚轮事件，用于缩放图片
  */
 void ImageView::wheelEvent(QWheelEvent *event)
@@ -2473,6 +2484,7 @@ void MainWindow::setupTaskMenus()
     m_taskController = new GenPreCVSystem::Controllers::TaskController(this);
     m_taskController->setParameterScrollArea(paramScrollArea);
     m_taskController->setTaskActionGroup(taskActionGroup);
+    m_taskController->setTabWidget(tabWidget);  // 设置 TabWidget 用于获取当前 ImageView
 
     // 连接任务控制器的日志信号
     connect(m_taskController, &GenPreCVSystem::Controllers::TaskController::logMessage,

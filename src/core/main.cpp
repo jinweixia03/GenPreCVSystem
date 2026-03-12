@@ -32,6 +32,9 @@
 #include <QDir>
 #include <QTextStream>
 #include <QTimer>
+#include <QIcon>
+#include <QSvgRenderer>
+#include <QPainter>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -184,6 +187,19 @@ int main(int argc, char *argv[])
         QApplication::setApplicationName("GenPreCVSystem");
         QApplication::setApplicationVersion("1.0.0");
         QApplication::setOrganizationName("GenPreCV");
+
+        // 设置应用程序图标
+        QIcon appIcon;
+        // 尝试从资源加载 SVG 图标
+        if (QFile::exists(":/images/logo-icon.svg")) {
+            appIcon.addFile(":/images/logo-icon.svg");
+        }
+        if (QFile::exists(":/images/logo.svg")) {
+            appIcon.addFile(":/images/logo.svg");
+        }
+        if (!appIcon.isNull()) {
+            QApplication::setWindowIcon(appIcon);
+        }
 
         // ========== 显示启动画面 ==========
         GenPreCVSystem::UI::SplashScreen *splash = new GenPreCVSystem::UI::SplashScreen();

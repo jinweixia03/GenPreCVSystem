@@ -47,6 +47,7 @@
 #include <QActionGroup>
 #include <QScrollArea>
 #include <QSlider>
+#include <QIcon>
 #include <cmath>
 
 using namespace GenPreCVSystem::Utils;
@@ -446,6 +447,16 @@ MainWindow::MainWindow(QWidget *parent)
     , m_batchProcessDialog(nullptr)
 {
     ui->setupUi(this);
+
+    // 设置窗口图标（如果应用程序图标未设置）
+    if (windowIcon().isNull()) {
+        QIcon appIcon;
+        appIcon.addFile(":/images/logo-icon.svg");
+        appIcon.addFile(":/images/logo.svg");
+        if (!appIcon.isNull()) {
+            setWindowIcon(appIcon);
+        }
+    }
 
     // 必须先创建停靠窗口（包括 paramScrollArea），然后才能初始化任务菜单
     setupImageViewer();

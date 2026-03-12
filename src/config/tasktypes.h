@@ -8,13 +8,15 @@ namespace Models {
  * @brief CV任务类型枚举
  */
 enum class CVTask {
-    ImageClassification,      ///< 图像分类
-    ObjectDetection,          ///< 目标检测
-    SemanticSegmentation,     ///< 语义分割
-    KeyPointDetection,        ///< 关键点检测
-    ImageEnhancement,         ///< 图像增强
-    ImageDenoising,           ///< 图像去噪
-    EdgeDetection             ///< 边缘检测
+    ImageClassification,       ///< 图像分类
+    ObjectDetection,           ///< 目标检测
+    SemanticSegmentation,      ///< 语义分割
+    KeyPointDetection,         ///< 关键点检测
+    RoadDamageDetection,       ///< 道路病害检测
+    ManholeCoverDamageDetection, ///< 井盖病害检测
+    ImageEnhancement,          ///< 图像增强
+    ImageDenoising,            ///< 图像去噪
+    EdgeDetection              ///< 边缘检测
 };
 
 /**
@@ -29,6 +31,8 @@ inline QString getTaskName(CVTask task)
         case CVTask::ObjectDetection: return "目标检测";
         case CVTask::SemanticSegmentation: return "语义分割";
         case CVTask::KeyPointDetection: return "关键点检测";
+        case CVTask::RoadDamageDetection: return "道路病害检测";
+        case CVTask::ManholeCoverDamageDetection: return "井盖病害检测";
         case CVTask::ImageEnhancement: return "图像增强";
         case CVTask::ImageDenoising: return "图像去噪";
         case CVTask::EdgeDetection: return "边缘检测";

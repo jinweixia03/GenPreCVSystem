@@ -30,6 +30,8 @@ private:
     static QWidget* createObjectDetectionParams();
     static QWidget* createSemanticSegmentationParams();
     static QWidget* createKeyPointDetectionParams();
+    static QWidget* createRoadDamageDetectionParams();
+    static QWidget* createManholeCoverDamageDetectionParams();
     static QWidget* createImageEnhancementParams();
     static QWidget* createImageDenoisingParams();
     static QWidget* createEdgeDetectionParams();

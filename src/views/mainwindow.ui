@@ -96,6 +96,8 @@
     <addaction name="actionTaskObjectDetection"/>
     <addaction name="actionTaskSemanticSegmentation"/>
     <addaction name="actionTaskKeyPointDetection"/>
+    <addaction name="actionTaskRoadDamageDetection"/>
+    <addaction name="actionTaskManholeCoverDamageDetection"/>
     <addaction name="separator"/>
     <addaction name="actionTaskImageEnhancement"/>
     <addaction name="actionTaskImageDenoising"/>
@@ -475,6 +477,34 @@
    </property>
    <property name="toolTip">
     <string>关键点检测任务</string>
+   </property>
+  </action>
+  <action name="actionTaskRoadDamageDetection">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>⚠ 道路病害检测(&amp;R)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+R</string>
+   </property>
+   <property name="toolTip">
+    <string>道路病害检测任务</string>
+   </property>
+  </action>
+  <action name="actionTaskManholeCoverDamageDetection">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>⚫ 井盖病害检测(&amp;M)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+M</string>
+   </property>
+   <property name="toolTip">
+    <string>井盖病害检测任务</string>
    </property>
   </action>
   <action name="actionTaskImageEnhancement">

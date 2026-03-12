@@ -1,0 +1,4 @@
+manhole
+damage
+missing
+open

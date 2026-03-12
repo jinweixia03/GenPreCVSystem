@@ -26,6 +26,7 @@ struct DetectionOverlay {
     int width;
     int height;
     float confidence;
+    int classId;                      // 类别ID，用于颜色分配
     QString label;
     QColor color;
     QVector<QPointF> maskPolygon;  // 分割掩码多边形

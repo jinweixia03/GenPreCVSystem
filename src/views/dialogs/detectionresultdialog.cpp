@@ -639,6 +639,7 @@ void DetectionResultDialog::clearResult()
 
 DetectionOverlay DetectionResultDialog::convertToOverlay(const Utils::Detection &det, int index)
 {
+    Q_UNUSED(index)
     DetectionOverlay overlay;
 
     static const QVector<QColor> colors = {
@@ -653,8 +654,10 @@ DetectionOverlay DetectionResultDialog::convertToOverlay(const Utils::Detection 
     overlay.width = det.width;
     overlay.height = det.height;
     overlay.confidence = det.confidence;
+    overlay.classId = det.classId;
     overlay.label = det.label.isEmpty() ? QString("Class %1").arg(det.classId) : det.label;
-    overlay.color = colors[index % colors.size()];
+    // 使用类别ID而不是检测索引来分配颜色，确保同一类别的检测结果使用相同颜色
+    overlay.color = colors[det.classId % colors.size()];
 
     // 复制掩码多边形数据
     for (const auto &pt : det.maskPolygon) {

@@ -183,6 +183,18 @@ public slots:
                                float iouThreshold = 0.45f, int imageSize = 640);
 
     /**
+     * @brief 执行道路病害检测
+     */
+    void runRoadDamageDetection(const QString &imagePath, float confThreshold = 0.25f,
+                                 float iouThreshold = 0.45f, int imageSize = 640);
+
+    /**
+     * @brief 执行井盖病害检测
+     */
+    void runManholeCoverDamageDetection(const QString &imagePath, float confThreshold = 0.25f,
+                                         float iouThreshold = 0.45f, int imageSize = 640);
+
+    /**
      * @brief 执行图像增强
      */
     void runImageEnhancement(const QString &imagePath, int brightness, int contrast,

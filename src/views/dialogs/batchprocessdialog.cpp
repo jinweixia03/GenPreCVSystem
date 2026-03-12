@@ -82,12 +82,14 @@ void BatchProcessDialog::setupUI()
     QGroupBox *taskGroup = new QGroupBox(tr("🎯 任务和模型"), this);
     QFormLayout *taskLayout = new QFormLayout(taskGroup);
 
-    // 任务类型选择（顺序：分类→检测→分割→Pose）
+    // 任务类型选择（顺序：分类→检测→分割→Pose→道路病害）
     m_comboTaskType = new QComboBox();
     m_comboTaskType->addItem(tr("图像分类"), static_cast<int>(Models::CVTask::ImageClassification));
     m_comboTaskType->addItem(tr("目标检测"), static_cast<int>(Models::CVTask::ObjectDetection));
     m_comboTaskType->addItem(tr("语义分割"), static_cast<int>(Models::CVTask::SemanticSegmentation));
     m_comboTaskType->addItem(tr("姿态检测"), static_cast<int>(Models::CVTask::KeyPointDetection));
+    m_comboTaskType->addItem(tr("道路病害检测"), static_cast<int>(Models::CVTask::RoadDamageDetection));
+    m_comboTaskType->addItem(tr("井盖病害检测"), static_cast<int>(Models::CVTask::ManholeCoverDamageDetection));
     taskLayout->addRow(tr("任务类型:"), m_comboTaskType);
 
     // 模型选择
@@ -235,6 +237,18 @@ void BatchProcessDialog::setupUI()
     connect(m_btnStop, &QPushButton::clicked, this, &BatchProcessDialog::onStopProcessing);
     connect(m_btnExport, &QPushButton::clicked, this, &BatchProcessDialog::onExportResults);
     connect(m_btnClose, &QPushButton::clicked, this, &BatchProcessDialog::onClose);
+
+    // 连接输入筛选选项的信号 - 当选项改变时重新扫描文件
+    connect(m_chkRecursive, &QCheckBox::stateChanged, this, [this]() {
+        if (!m_currentFolder.isEmpty()) {
+            populateImageList(m_currentFolder);
+        }
+    });
+    connect(m_comboImageFormat, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
+        if (!m_currentFolder.isEmpty()) {
+            populateImageList(m_currentFolder);
+        }
+    });
 }
 
 void BatchProcessDialog::applyStyles()
@@ -265,6 +279,11 @@ void BatchProcessDialog::applyStyles()
 void BatchProcessDialog::setDLService(Utils::DLService *service)
 {
     m_dlService = service;
+    // 根据当前UI中选中的任务类型更新m_taskType，然后扫描模型
+    int currentTaskIndex = m_comboTaskType->currentIndex();
+    if (currentTaskIndex >= 0) {
+        m_taskType = static_cast<Models::CVTask>(m_comboTaskType->itemData(currentTaskIndex).toInt());
+    }
     updateModelList();
     // 选择第一个模型（不自动加载，等用户点击开始时加载）
     if (m_comboModel->count() > 0 && !m_comboModel->itemData(0).isNull()) {
@@ -291,6 +310,12 @@ QString BatchProcessDialog::getModelDirectory() const
         break;
     case Models::CVTask::KeyPointDetection:
         subDir = "keypoint";
+        break;
+    case Models::CVTask::RoadDamageDetection:
+        subDir = "roaddamagedetection";
+        break;
+    case Models::CVTask::ManholeCoverDamageDetection:
+        subDir = "manholecoverdamagedetection";
         break;
     default:
         subDir = "detection";
@@ -329,7 +354,7 @@ void BatchProcessDialog::updateModelList()
     }
 
     QStringList filters;
-    filters << "*.pt" << "*.pth" << "*.onnx" << "*.torchscript";
+    filters << "*.pt" << "*.pth" << "*.torchscript";
 
     QFileInfoList fileList = dir.entryInfoList(filters, QDir::Files | QDir::Readable, QDir::Name);
     for (const QFileInfo &fileInfo : fileList) {
@@ -365,7 +390,7 @@ void BatchProcessDialog::onBrowseModel()
 {
     QString modelPath = QFileDialog::getOpenFileName(this, tr("选择模型文件"),
                                                       getModelDirectory(),
-                                                      tr("模型文件 (*.pt *.pth *.onnx *.torchscript);;所有文件 (*.*)"));
+                                                      tr("模型文件 (*.pt *.pth *.torchscript);;所有文件 (*.*)"));
     if (!modelPath.isEmpty()) {
         // 检查是否已在列表中
         int index = m_comboModel->findData(modelPath);
@@ -569,6 +594,23 @@ void BatchProcessDialog::processNextImage()
         }
         break;
 
+    case Models::CVTask::RoadDamageDetection:
+    case Models::CVTask::ManholeCoverDamageDetection:
+        {
+            Utils::DetectionResult result = m_dlService->detect(imagePath,
+                static_cast<float>(m_spinConfThreshold->value()),
+                static_cast<float>(m_spinIOUThreshold->value()),
+                m_spinImageSize->value());
+            m_detectionResults.append({imagePath, result});
+            if (result.success) {
+                m_successCount++;
+                m_totalTime += result.inferenceTime;
+            } else {
+                m_failCount++;
+            }
+        }
+        break;
+
     default:
         m_failCount++;
         break;
@@ -686,7 +728,9 @@ bool BatchProcessDialog::exportAsZip(const QString &zipPath)
     // 根据任务类型处理结果
     switch (m_taskType) {
     case Models::CVTask::ObjectDetection:
-        // 目标检测 - 只绘制边界框
+    case Models::CVTask::RoadDamageDetection:
+    case Models::CVTask::ManholeCoverDamageDetection:
+        // 目标检测 / 道路病害检测 / 井盖病害检测 - 只绘制边界框
         for (const auto &resultPair : m_detectionResults) {
             const QString &imagePath = resultPair.first;
             const Utils::DetectionResult &result = resultPair.second;

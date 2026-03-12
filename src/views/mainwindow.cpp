@@ -1443,6 +1443,22 @@ void MainWindow::on_actionTaskKeyPointDetection_triggered()
 }
 
 /**
+ * @brief 道路病害检测
+ */
+void MainWindow::on_actionTaskRoadDamageDetection_triggered()
+{
+    switchTask(CVTask::RoadDamageDetection);
+}
+
+/**
+ * @brief 井盖病害检测
+ */
+void MainWindow::on_actionTaskManholeCoverDamageDetection_triggered()
+{
+    switchTask(CVTask::ManholeCoverDamageDetection);
+}
+
+/**
  * @brief 图像增强
  */
 void MainWindow::on_actionTaskImageEnhancement_triggered()
@@ -2577,6 +2593,8 @@ void MainWindow::setupTaskMenus()
     ui->actionTaskObjectDetection->setData(QVariant::fromValue(static_cast<int>(CVTask::ObjectDetection)));
     ui->actionTaskSemanticSegmentation->setData(QVariant::fromValue(static_cast<int>(CVTask::SemanticSegmentation)));
     ui->actionTaskKeyPointDetection->setData(QVariant::fromValue(static_cast<int>(CVTask::KeyPointDetection)));
+    ui->actionTaskRoadDamageDetection->setData(QVariant::fromValue(static_cast<int>(CVTask::RoadDamageDetection)));
+    ui->actionTaskManholeCoverDamageDetection->setData(QVariant::fromValue(static_cast<int>(CVTask::ManholeCoverDamageDetection)));
     ui->actionTaskImageEnhancement->setData(QVariant::fromValue(static_cast<int>(CVTask::ImageEnhancement)));
     ui->actionTaskImageDenoising->setData(QVariant::fromValue(static_cast<int>(CVTask::ImageDenoising)));
     ui->actionTaskEdgeDetection->setData(QVariant::fromValue(static_cast<int>(CVTask::EdgeDetection)));
@@ -2586,6 +2604,8 @@ void MainWindow::setupTaskMenus()
     taskActionGroup->addAction(ui->actionTaskObjectDetection);
     taskActionGroup->addAction(ui->actionTaskSemanticSegmentation);
     taskActionGroup->addAction(ui->actionTaskKeyPointDetection);
+    taskActionGroup->addAction(ui->actionTaskRoadDamageDetection);
+    taskActionGroup->addAction(ui->actionTaskManholeCoverDamageDetection);
     taskActionGroup->addAction(ui->actionTaskImageEnhancement);
     taskActionGroup->addAction(ui->actionTaskImageDenoising);
     taskActionGroup->addAction(ui->actionTaskEdgeDetection);

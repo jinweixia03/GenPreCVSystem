@@ -701,7 +701,7 @@ void EnvironmentServiceWidget::onBrowseModel()
         this,
         "选择 DL 模型文件",
         QString(),
-        "模型文件 (*.pt *.pth *.onnx);;所有文件 (*)"
+        "模型文件 (*.pt *.pth);;所有文件 (*)"
     );
 
     if (!modelPath.isEmpty()) {

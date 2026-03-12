@@ -42,5 +42,3 @@ models/
 
 - `.pt` - PyTorch 模型
 - `.pth` - PyTorch 模型
-- `.onnx` - ONNX 模型
-- `.torchscript` - TorchScript 模型

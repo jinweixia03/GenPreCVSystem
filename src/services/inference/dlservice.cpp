@@ -92,6 +92,7 @@ DLService::DLService(QObject *parent)
     : QObject(parent)
     , m_process(nullptr)
     , m_modelLoaded(false)
+    , m_taskType("dl")  // 默认使用 DL 服务
 {
 }
 
@@ -431,6 +432,11 @@ void DLService::setEnvironmentPath(const QString &path)
 
 QString DLService::getDefaultScriptPath() const
 {
+    // 如果是 FSL 任务，返回 FSL 服务脚本
+    if (m_taskType == "fsl" || m_taskType == "few_shot" || m_taskType == "RemoteSceneFewShotClassification") {
+        return getFSLScriptPath();
+    }
+
     // 查找默认脚本路径
     QString appDir = QCoreApplication::applicationDirPath();
     QDir appQDir(appDir);
@@ -473,6 +479,44 @@ QString DLService::getDefaultScriptPath() const
 
     // 默认返回第一个路径（新位置）
     qDebug() << "[DLService] Script not found, returning default path:" << possiblePaths.first();
+    return QDir::cleanPath(possiblePaths.first());
+}
+
+QString DLService::getFSLScriptPath() const
+{
+    // 查找 FSL 服务脚本路径
+    QString appDir = QCoreApplication::applicationDirPath();
+    QDir appQDir(appDir);
+
+    // 尝试多个可能的路径（按优先级排序）
+    QStringList possiblePaths = {
+        // 1. 构建目录中的 python 文件夹（CMake 复制后的位置，最高优先级）
+        appDir + "/python/fsl_service.py",
+        // 2. 重构后的新位置（从源目录运行）
+        appDir + "/../src/services/inference/python/fsl_service.py",
+        appDir + "/src/services/inference/python/fsl_service.py",
+        QCoreApplication::applicationDirPath() + "/../../src/services/inference/python/fsl_service.py",
+        // 3. 当前目录
+        appDir + "/fsl_service.py",
+    };
+
+    // 尝试从构建目录找到源目录
+    QDir buildDir(appDir);
+    if (buildDir.cdUp()) {
+        possiblePaths.append(buildDir.absolutePath() + "/src/services/inference/python/fsl_service.py");
+        possiblePaths.append(buildDir.absolutePath() + "/python/fsl_service.py");
+    }
+
+    for (const QString &path : possiblePaths) {
+        QString normalized = QDir::cleanPath(path);
+        if (QFile::exists(normalized)) {
+            qDebug() << "[DLService] Found FSL script at:" << normalized;
+            return normalized;
+        }
+    }
+
+    // 默认返回第一个路径
+    qDebug() << "[DLService] FSL Script not found, returning default path:" << possiblePaths.first();
     return QDir::cleanPath(possiblePaths.first());
 }
 
@@ -552,7 +596,19 @@ bool DLService::start(const QString &pythonPath, const QString &scriptPath)
     // 确定脚本路径
     QString script = scriptPath.isEmpty() ? getDefaultScriptPath() : scriptPath;
 
-    // 设置进程通道模式
+    // 检查脚本文件是否存在
+    emit logMessage(QString("[调试] 任务类型: %1").arg(m_taskType));
+    emit logMessage(QString("[调试] Python 路径: %1").arg(python));
+    emit logMessage(QString("[调试] 脚本路径: %1").arg(script));
+
+    if (!QFile::exists(script)) {
+        emit logMessage(QString("错误: 服务脚本不存在: %1").arg(script));
+        delete m_process;
+        m_process = nullptr;
+        return false;
+    }
+
+    // 设置进程通道模式 - 分离 stderr 和 stdout
     m_process->setProcessChannelMode(QProcess::SeparateChannels);
 
     QStringList args;
@@ -672,12 +728,26 @@ QJsonObject DLService::sendRequest(const QJsonObject &request)
         return QJsonObject{{"success", false}, {"message", "等待响应超时"}};
     }
 
-    // 读取响应
-    QString response = QString::fromUtf8(m_process->readLine()).trimmed();
+    // 读取响应（循环读取直到获得有效 JSON）
+    QString response;
+    for (int i = 0; i < 10; ++i) {  // 最多尝试 10 次
+        response = QString::fromUtf8(m_process->readLine()).trimmed();
+        if (!response.isEmpty()) {
+            break;
+        }
+        // 如果空行，等待更多数据
+        if (!m_process->waitForReadyRead(1000)) {
+            break;
+        }
+    }
+
+    // 调试输出原始响应
+    emit logMessage(QString("[调试] 原始响应: %1").arg(response));
+
     QJsonDocument doc = QJsonDocument::fromJson(response.toUtf8());
 
     if (doc.isNull()) {
-        return QJsonObject{{"success", false}, {"message", "无效的 JSON 响应"}};
+        return QJsonObject{{"success", false}, {"message", "无效的 JSON 响应: " + response}};
     }
 
     return doc.object();
@@ -843,6 +913,13 @@ ClassificationResultList DLService::parseClassificationResult(const QJsonObject 
             cls.confidence = static_cast<float>(obj["confidence"].toDouble());
             cls.classId = obj["class_id"].toInt();
             cls.label = obj["label"].toString();
+            // FSL 特有字段
+            if (obj.contains("avg_distance")) {
+                cls.avgDistance = static_cast<float>(obj["avg_distance"].toDouble());
+            }
+            if (obj.contains("episode_count")) {
+                cls.episodeCount = obj["episode_count"].toInt();
+            }
             result.classifications.append(cls);
         }
 
@@ -922,6 +999,53 @@ ClassificationResultList DLService::classify(const QString &imagePath, int topK)
                         .arg(result.topPrediction.label)
                         .arg(static_cast<int>(result.topPrediction.confidence * 100))
                         .arg(result.inferenceTime));
+    }
+
+    emit classificationCompleted(result);
+    return result;
+}
+
+ClassificationResultList DLService::fewShotClassify(const QString &imagePath,
+                                                    int nWay,
+                                                    int nShot,
+                                                    int nQuery,
+                                                    int imageSize)
+{
+    if (!m_modelLoaded) {
+        ClassificationResultList result;
+        result.success = false;
+        result.message = "模型未加载";
+        emit logMessage(result.message);
+        return result;
+    }
+
+    QElapsedTimer timer;
+    timer.start();
+
+    QJsonObject request;
+    request["command"] = "few_shot_classify";
+    request["image_path"] = imagePath;
+    request["n_way"] = nWay;
+    request["n_shot"] = nShot;
+    request["n_query"] = nQuery;
+    request["image_size"] = imageSize;
+
+    // 调试：输出发送的请求
+    emit logMessage(QString("[调试] 发送请求: %1").arg(QJsonDocument(request).toJson(QJsonDocument::Compact)));
+
+    QJsonObject response = sendRequest(request);
+    ClassificationResultList result = parseClassificationResult(response);
+    result.inferenceTime = timer.elapsed();
+
+    if (result.success) {
+        // 使用 QString::number 保留小数位，避免 static_cast<int> 截断小数值
+        QString confidenceStr = QString::number(result.topPrediction.confidence * 100, 'f', 2);
+        emit logMessage(QString("小样本分类完成: %1 (%2%), 耗时 %3ms")
+                        .arg(result.topPrediction.label.isEmpty() ? "Unknown" : result.topPrediction.label)
+                        .arg(confidenceStr)
+                        .arg(result.inferenceTime));
+    } else {
+        emit logMessage(QString("小样本分类失败: %1").arg(result.message));
     }
 
     emit classificationCompleted(result);

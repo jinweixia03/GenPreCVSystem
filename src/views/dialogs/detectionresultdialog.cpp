@@ -453,6 +453,36 @@ void DetectionResultDialog::setClassificationResult(const QPixmap &pixmap, const
     updateClassificationPanel();
 }
 
+void DetectionResultDialog::setFewShotClassificationResult(const QPixmap &pixmap,
+                                                           const Utils::ClassificationResultList &result,
+                                                           int nWay, int nShot)
+{
+    Q_UNUSED(pixmap)  // 分类结果不需要显示图片
+    m_classificationResult = result;
+    m_currentTaskType = Models::CVTask::RemoteSceneFewShotClassification;
+
+    // 只显示分类面板，隐藏图像视图
+    m_imageView->setVisible(false);
+    m_classificationPanel->setVisible(true);
+    m_comparisonPanel->setVisible(false);
+    m_txtDetails->setVisible(false);
+
+    // 让分类面板占据全部空间
+    m_contentSplitter->setSizes({0, 1});
+
+    setWindowTitle(tr("遥感影像小样本分类结果 (%1-way-%2shot)").arg(nWay).arg(nShot));
+    updateClassificationPanel();
+
+    // 更新信息栏显示小样本学习参数
+    if (result.success) {
+        QString infoText = tr("✓ 小样本分类完成 | N-way=%1 | N-shot=%2 | Top: %3")
+                          .arg(nWay)
+                          .arg(nShot)
+                          .arg(result.topPrediction.label);
+        m_lblInfo->setText(infoText);
+    }
+}
+
 void DetectionResultDialog::setKeypointResult(const QPixmap &pixmap, const Utils::KeypointResult &result,
                                                bool showBoxes, bool showLabels)
 {
@@ -733,23 +763,60 @@ void DetectionResultDialog::updateClassificationPanel()
         return;
     }
 
+    // 判断是否是 FSL 任务（检查是否有 avgDistance 字段）
+    bool isFSL = !m_classificationResult.classifications.isEmpty() &&
+                 m_classificationResult.classifications[0].avgDistance > 0;
+
     // 更新 Top-1 预测
     if (!m_classificationResult.classifications.isEmpty()) {
         const auto &top = m_classificationResult.topPrediction;
-        m_lblTopPrediction->setText(
-            tr("预测结果: %1\n置信度: %2%")
-                .arg(top.label)
-                .arg(static_cast<int>(top.confidence * 100))
-        );
+        if (isFSL) {
+            // FSL 显示格式：包含相似度和距离（相似度转换为百分比，乘以组数显示总分）
+            double simTotal = top.confidence * 100 * top.episodeCount;
+
+            m_lblTopPrediction->setText(
+                tr("预测结果: %1\n累计相似度: %2 | 平均距离: %3")
+                    .arg(top.label)
+                    .arg(QString::number(simTotal, 'f', 2))
+                    .arg(QString::number(top.avgDistance, 'f', 2))
+            );
+        } else {
+            // 普通分类显示格式
+            m_lblTopPrediction->setText(
+                tr("预测结果: %1\n置信度: %2%")
+                    .arg(top.label)
+                    .arg(static_cast<int>(top.confidence * 100))
+            );
+        }
     } else {
         m_lblTopPrediction->setText(tr("无分类结果"));
     }
 
     // 更新信息标签
-    QString infoText = tr("分类完成 | 耗时: %1ms | Top-%2 结果")
-        .arg(static_cast<int>(m_classificationResult.inferenceTime))
-        .arg(m_classificationResult.classifications.size());
+    QString infoText;
+    if (isFSL) {
+        infoText = tr("小样本分类完成 | 耗时: %1ms | 共 %2 类")
+            .arg(static_cast<int>(m_classificationResult.inferenceTime))
+            .arg(m_classificationResult.classifications.size());
+    } else {
+        infoText = tr("分类完成 | 耗时: %1ms | Top-%2 结果")
+            .arg(static_cast<int>(m_classificationResult.inferenceTime))
+            .arg(m_classificationResult.classifications.size());
+    }
     m_lblInfo->setText(infoText);
+
+    // 设置表格列（FSL 显示更多列）
+    if (isFSL) {
+        m_classificationTable->setColumnCount(4);
+        m_classificationTable->setHorizontalHeaderLabels(
+            QStringList() << tr("排名") << tr("类别") << tr("累计相似度") << tr("平均距离")
+        );
+    } else {
+        m_classificationTable->setColumnCount(3);
+        m_classificationTable->setHorizontalHeaderLabels(
+            QStringList() << tr("排名") << tr("类别") << tr("置信度")
+        );
+    }
 
     // 更新表格
     m_classificationTable->setRowCount(m_classificationResult.classifications.size());
@@ -761,12 +828,17 @@ void DetectionResultDialog::updateClassificationPanel()
 
         QTableWidgetItem *labelItem = new QTableWidgetItem(cls.label);
 
-        QTableWidgetItem *confItem = new QTableWidgetItem(
-            QString("%1%").arg(static_cast<int>(cls.confidence * 100))
-        );
+        QTableWidgetItem *confItem;
+        if (isFSL) {
+            // FSL 显示相似度（转换为百分比，乘以组数显示总分）
+            double simPercent = cls.confidence * 100 * cls.episodeCount;
+            confItem = new QTableWidgetItem(QString("%1").arg(QString::number(simPercent, 'f', 2)));
+        } else {
+            confItem = new QTableWidgetItem(QString("%1%").arg(static_cast<int>(cls.confidence * 100)));
+        }
         confItem->setTextAlignment(Qt::AlignCenter);
 
-        // 第一行高亮
+        // 第一行高亮（排名、类别和相似度列）
         if (i == 0) {
             QColor highlightColor(0, 102, 204);  // #0066cc
             rankItem->setBackground(highlightColor);
@@ -780,6 +852,21 @@ void DetectionResultDialog::updateClassificationPanel()
         m_classificationTable->setItem(i, 0, rankItem);
         m_classificationTable->setItem(i, 1, labelItem);
         m_classificationTable->setItem(i, 2, confItem);
+
+        // FSL 特有列（平均距离）
+        if (isFSL) {
+            QTableWidgetItem *distItem = new QTableWidgetItem(QString::number(cls.avgDistance, 'f', 2));
+            distItem->setTextAlignment(Qt::AlignCenter);
+
+            if (i == 0) {
+                // 距离列使用高亮背景
+                QColor highlightColor(0, 102, 204);
+                distItem->setBackground(highlightColor);
+                distItem->setForeground(Qt::white);
+            }
+
+            m_classificationTable->setItem(i, 3, distItem);
+        }
     }
 
     m_classificationTable->resizeColumnsToContents();

@@ -55,6 +55,9 @@ struct ClassificationResult {
     float confidence;
     int classId;
     QString label;
+    // FSL 特有字段
+    float avgDistance = 0.0f;      // 平均距离（越小越相似）
+    int episodeCount = 0;          // 该类别在多少轮 episode 中被选中
 };
 
 /**
@@ -211,6 +214,17 @@ public:
     bool loadModel(const QString &modelPath, const QString &labelsPath = QString());
 
     /**
+     * @brief 设置当前任务类型（用于选择正确的服务脚本）
+     * @param task 任务类型
+     */
+    void setTaskType(const QString &task) { m_taskType = task; }
+
+    /**
+     * @brief 获取当前任务类型
+     */
+    QString taskType() const { return m_taskType; }
+
+    /**
      * @brief 执行目标检测
      * @param imagePath 图像文件路径
      * @param confThreshold 置信度阈值
@@ -243,6 +257,21 @@ public:
      * @return 分类结果
      */
     ClassificationResultList classify(const QString &imagePath, int topK = 5);
+
+    /**
+     * @brief 执行遥感影像小样本分类
+     * @param imagePath 图像文件路径
+     * @param nWay 每轮类别数
+     * @param nShot 每类支持样本数
+     * @param nQuery 每类查询样本数
+     * @param imageSize 输入图像尺寸
+     * @return 分类结果
+     */
+    ClassificationResultList fewShotClassify(const QString &imagePath,
+                                             int nWay = 5,
+                                             int nShot = 5,
+                                             int nQuery = 15,
+                                             int imageSize = 84);
 
     /**
      * @brief 执行关键点/姿态检测
@@ -315,6 +344,11 @@ private:
     QString getDefaultScriptPath() const;
 
     /**
+     * @brief 获取 FSL 服务脚本路径
+     */
+    QString getFSLScriptPath() const;
+
+    /**
      * @brief 查找 conda 环境中的 Python
      * @return Python 可执行文件路径，或 "conda" 表示使用 conda run
      */
@@ -324,6 +358,7 @@ private:
     bool m_modelLoaded;
     QString m_modelPath;
     QString m_environmentPath;  // 当前选中的环境路径
+    QString m_taskType;         // 当前任务类型（用于选择服务脚本）
 };
 
 } // namespace Utils

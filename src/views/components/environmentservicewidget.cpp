@@ -307,9 +307,25 @@ void EnvironmentServiceWidget::populateEnvironmentCombo(const QVector<Utils::Cac
         }
     }
 
-    // 选择优先级：1. 上次使用的环境 2. 第一个就绪的环境 3. 第一个环境
+    // 检查是否是FSL任务，如果是则优先选择fsl环境
+    int fslEnvIndex = -1;
+    if (m_dlService && m_dlService->taskType() == "fsl") {
+        for (int i = 0; i < envs.size(); ++i) {
+            if (envs[i].name.contains("fsl", Qt::CaseInsensitive) ||
+                envs[i].path.contains("fsl", Qt::CaseInsensitive)) {
+                fslEnvIndex = i;
+                emit logMessage(QString("[环境服务] 找到FSL环境: %1").arg(envs[i].name));
+                break;
+            }
+        }
+    }
+
+    // 选择优先级：1. FSL任务优先fsl环境 2. 上次使用的环境 3. 第一个就绪的环境 4. 第一个环境
     int indexToSelect = -1;
-    if (selectedIndex >= 0) {
+    if (fslEnvIndex >= 0) {
+        indexToSelect = fslEnvIndex;
+        emit logMessage("[环境服务] 自动选择FSL专用环境");
+    } else if (selectedIndex >= 0) {
         indexToSelect = selectedIndex;
         emit logMessage("[环境服务] 自动选择上次使用的环境");
     } else if (firstReadyIndex >= 0) {
@@ -778,6 +794,9 @@ void EnvironmentServiceWidget::updateModelList(Models::CVTask task)
         case Models::CVTask::ManholeCoverDamageDetection:
             modelDir = basePath + "/manholecoverdamagedetection";
             break;
+        case Models::CVTask::RemoteSceneFewShotClassification:
+            modelDir = basePath + "/remotescenefewshotclassification";
+            break;
         default:
             modelDir = basePath;
             break;
@@ -792,7 +811,7 @@ void EnvironmentServiceWidget::updateModelList(Models::CVTask task)
         return;
     }
 
-    // 支持的模型文件扩展名（仅 PyTorch 格式）
+    // 支持的模型文件扩展名（PyTorch 格式）
     QStringList filters;
     filters << "*.pt" << "*.pth";
 
@@ -890,6 +909,9 @@ QString EnvironmentServiceWidget::findFirstAvailableModel(Models::CVTask task) c
         case Models::CVTask::ManholeCoverDamageDetection:
             modelDir = basePath + "/manholecoverdamagedetection";
             break;
+        case Models::CVTask::RemoteSceneFewShotClassification:
+            modelDir = basePath + "/remotescenefewshotclassification";
+            break;
         default:
             modelDir = basePath;
             break;
@@ -900,7 +922,7 @@ QString EnvironmentServiceWidget::findFirstAvailableModel(Models::CVTask task) c
         return QString();
     }
 
-    // 支持的模型文件扩展名（仅 PyTorch 格式）
+    // 支持的模型文件扩展名（PyTorch 格式）
     QStringList filters;
     filters << "*.pt" << "*.pth";
 
@@ -910,16 +932,14 @@ QString EnvironmentServiceWidget::findFirstAvailableModel(Models::CVTask task) c
         return QString();
     }
 
-    // 返回第一个可用模型（优先 .pt 文件）
-    // 先找 .pt 或 .pth 文件（PyTorch 格式）
+    // 返回第一个可用模型（优先 .pth 文件，因为是 PyTorch 训练保存的格式）
     for (const QFileInfo &fileInfo : fileList) {
         QString suffix = fileInfo.suffix().toLower();
-        if (suffix == "pt" || suffix == "pth") {
+        if (suffix == "pth" || suffix == "pt") {
             return fileInfo.absoluteFilePath();
         }
     }
 
-    // 如果没有 PyTorch 格式，返回第一个可用文件
     return fileList.first().absoluteFilePath();
 }
 

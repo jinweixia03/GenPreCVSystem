@@ -32,6 +32,7 @@ private:
     static QWidget* createKeyPointDetectionParams();
     static QWidget* createRoadDamageDetectionParams();
     static QWidget* createManholeCoverDamageDetectionParams();
+    static QWidget* createRemoteSceneFewShotClassificationParams();
     static QWidget* createImageEnhancementParams();
     static QWidget* createImageDenoisingParams();
     static QWidget* createEdgeDetectionParams();

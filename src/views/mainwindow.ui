@@ -98,6 +98,7 @@
     <addaction name="actionTaskKeyPointDetection"/>
     <addaction name="actionTaskRoadDamageDetection"/>
     <addaction name="actionTaskManholeCoverDamageDetection"/>
+    <addaction name="actionTaskRemoteSceneFewShotClassification"/>
     <addaction name="separator"/>
     <addaction name="actionTaskImageEnhancement"/>
     <addaction name="actionTaskImageDenoising"/>
@@ -505,6 +506,20 @@
    </property>
    <property name="toolTip">
     <string>井盖病害检测任务</string>
+   </property>
+  </action>
+  <action name="actionTaskRemoteSceneFewShotClassification">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>🛰 遥感小样本分类(&amp;F)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+F</string>
+   </property>
+   <property name="toolTip">
+    <string>遥感影像小样本分类任务</string>
    </property>
   </action>
   <action name="actionTaskImageEnhancement">

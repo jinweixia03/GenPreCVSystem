@@ -280,24 +280,34 @@ class ImageServiceMixin:
         if ext not in self.SUPPORTED_IMAGE_EXTENSIONS:
             return False, f"不支持的图像格式: {ext}"
 
-        # 检查文件大小
-        try:
-            file_size = os.path.getsize(image_path)
-            if file_size == 0:
-                # 文件可能正在写入，等待重试
-                import time
-                time.sleep(0.1)
+        # 检查文件大小 - 带重试机制
+        max_retries = 10
+        retry_delay = 0.05  # 50ms
+        file_size = 0
+
+        for attempt in range(max_retries):
+            try:
                 file_size = os.path.getsize(image_path)
+                if file_size > 0:
+                    break
+                # 文件大小为0，等待后重试
+                if attempt < max_retries - 1:
+                    import time
+                    time.sleep(retry_delay)
+            except OSError as e:
+                if attempt < max_retries - 1:
+                    import time
+                    time.sleep(retry_delay)
+                else:
+                    return False, f"无法访问图像文件: {e}"
 
-            if file_size == 0:
-                return False, "图像文件为空或正在写入"
+        # 检查最终文件大小
+        if file_size == 0:
+            return False, "图像文件为空或正在写入"
 
-            if file_size > self.MAX_IMAGE_SIZE:
-                size_gb = file_size / (1024**3)
-                return False, f"图像文件过大 ({size_gb:.2f} GB > 1 GB)"
-
-        except OSError as e:
-            return False, f"无法访问图像文件: {e}"
+        if file_size > self.MAX_IMAGE_SIZE:
+            size_gb = file_size / (1024**3)
+            return False, f"图像文件过大 ({size_gb:.2f} GB > 1 GB)"
 
         return True, ""
 

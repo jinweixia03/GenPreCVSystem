@@ -215,7 +215,7 @@ GenPreCVSystem/
 ### YOLO Inference
 1. **Select Python Environment**: Use the environment selector in the right panel
 2. **Choose Task Type**: Select Detection/Segmentation/Classification/Keypoint
-3. **Load Model**: Select a model file (.pt or .onnx)
+3. **Load Model**: Select a model file (.pt or .pth)
 4. **Adjust Parameters**: Set confidence threshold, IoU threshold, image size
 5. **Run**: Click Run (`F5`) or press the run button
 6. **View Results**: Detection results are displayed with bounding boxes/masks
@@ -250,7 +250,7 @@ The YOLO inference service uses a Qt C++ frontend with Python backend architectu
          ▼                                       ▼
 ┌─────────────────┐                      ┌──────────────────┐
 │   Qt Signals    │                      │   DL Models      │
-│  (UI Updates)   │                      │  (PyTorch/onnx)  │
+│  (UI Updates)   │                      │    (PyTorch)     │
 └─────────────────┘                      └──────────────────┘
 ```
 
@@ -568,7 +568,7 @@ YOLO 推理服务使用 Qt C++ 前端与 Python 后端架构：
          ▼                                       ▼
 ┌─────────────────┐                      ┌──────────────────┐
 │   Qt 信号       │                      │   YOLO 模型      │
-│  (UI 更新)      │                      │  (PyTorch/onnx)  │
+│  (UI 更新)      │                      │    (PyTorch)     │
 └─────────────────┘                      └──────────────────┘
 ```
 

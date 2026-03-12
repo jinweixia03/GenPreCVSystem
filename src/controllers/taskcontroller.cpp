@@ -248,7 +248,7 @@ QStringList TaskController::scanAvailableModels(Models::CVTask task)
 
     // 支持的模型文件扩展名
     QStringList filters;
-    filters << "*.pt" << "*.pth" << "*.onnx" << "*.torchscript";
+    filters << "*.pt" << "*.pth";
 
     QFileInfoList fileList = dir.entryInfoList(filters, QDir::Files | QDir::Readable);
 

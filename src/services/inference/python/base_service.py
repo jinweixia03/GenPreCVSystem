@@ -283,10 +283,19 @@ class ImageServiceMixin:
         # 检查文件大小
         try:
             file_size = os.path.getsize(image_path)
-            if file_size > self.MAX_IMAGE_SIZE:
-                return False, f"图像文件过大 ({file_size / (1024**3):.2f} GB > 1 GB)"
             if file_size == 0:
-                return False, "图像文件为空"
+                # 文件可能正在写入，等待重试
+                import time
+                time.sleep(0.1)
+                file_size = os.path.getsize(image_path)
+
+            if file_size == 0:
+                return False, "图像文件为空或正在写入"
+
+            if file_size > self.MAX_IMAGE_SIZE:
+                size_gb = file_size / (1024**3)
+                return False, f"图像文件过大 ({size_gb:.2f} GB > 1 GB)"
+
         except OSError as e:
             return False, f"无法访问图像文件: {e}"
 

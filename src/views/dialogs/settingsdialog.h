@@ -5,8 +5,6 @@
 
 class QLineEdit;
 class QSpinBox;
-class QCheckBox;
-class QComboBox;
 
 namespace GenPreCVSystem {
 namespace Views {
@@ -14,7 +12,7 @@ namespace Views {
 /**
  * @brief 设置对话框
  *
- * 提供常规设置选项
+ * 提供目录设置和常规设置选项
  */
 class SettingsDialog : public QDialog
 {
@@ -49,12 +47,6 @@ private:
 
     // 常规设置
     QSpinBox *m_spinMaxRecentFiles;
-    QCheckBox *m_chkAutoSave;
-
-    // 导出设置
-    QComboBox *m_comboExportFormat;
-    QCheckBox *m_chkIncludeTimestamp;
-    QCheckBox *m_chkIncludeMetadata;
 };
 
 } // namespace Views

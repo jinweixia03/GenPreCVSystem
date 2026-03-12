@@ -112,8 +112,7 @@
     </property>
     <addaction name="actionBatchProcess"/>
     <addaction name="separator"/>
-    <addaction name="actionRoadDamage"/>
-    <addaction name="actionRemoteSensing"/>
+    <addaction name="actionTestGPU"/>
    </widget>
 
    <!-- 设置菜单 -->
@@ -608,6 +607,14 @@
    </property>
    <property name="enabled">
     <bool>false</bool>
+   </property>
+  </action>
+  <action name="actionTestGPU">
+   <property name="text">
+    <string>🎮 测试GPU(&amp;G)...</string>
+   </property>
+   <property name="toolTip">
+    <string>测试GPU可用性和性能</string>
    </property>
   </action>
 

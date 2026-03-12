@@ -106,6 +106,8 @@ private:
     void onServiceStartedSuccessfully();
     void tryAutoLoadModel();
     void updateModelStatus();
+    void updateGpuStatus();  // 更新 GPU 状态显示
+    void updateGpuStatusDisplay(const Utils::CachedEnvironment &env);  // 显示具体的 GPU 状态
 
     /**
      * @brief 查找指定任务下的第一个可用模型
@@ -118,6 +120,7 @@ private:
     QComboBox *m_envCombo;
     QPushButton *m_btnReloadEnvs;  // 重载环境按钮
     QLabel *m_lblServiceStatus;  // 服务状态
+    QLabel *m_lblGpuStatus;  // GPU 状态
 
     // 模型选择控件
     QComboBox *m_cmbModelSelect;

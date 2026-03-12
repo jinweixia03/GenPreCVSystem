@@ -6,6 +6,8 @@
 #include "appsettings.h"
 #include "settingsdialog.h"
 #include "batchprocessdialog.h"
+#include "environmentcachemanager.h"
+#include "dlservice.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QDir>
@@ -46,6 +48,8 @@
 #include <QScrollArea>
 #include <QSlider>
 #include <cmath>
+
+using namespace GenPreCVSystem::Utils;
 
 // ==================== ImageView 实现 ====================
 
@@ -1527,6 +1531,227 @@ void MainWindow::on_actionBatchProcess_triggered()
     m_batchProcessDialog->show();
     m_batchProcessDialog->raise();
     m_batchProcessDialog->activateWindow();
+}
+
+/**
+ * @brief GPU 测试 - 提供全面的环境配置指导
+ */
+void MainWindow::on_actionTestGPU_triggered()
+{
+    using namespace GenPreCVSystem::Utils;
+
+    // 初始化缓存管理器（如果尚未初始化）
+    EnvironmentCacheManager *cacheMgr = EnvironmentCacheManager::instance();
+    cacheMgr->initialize(false);  // 不启动后台验证
+
+    // 获取所有缓存的环境
+    QVector<CachedEnvironment> allEnvs = cacheMgr->getCachedEnvironments();
+
+    // 如果没有缓存的环境，尝试扫描
+    if (allEnvs.isEmpty()) {
+        logMessage("[GPU检测] 缓存为空，正在扫描环境...");
+        QVector<PythonEnvironment> scannedEnvs = DLService::scanEnvironments();
+        for (const auto &env : scannedEnvs) {
+            allEnvs.append(CachedEnvironment(env));
+        }
+    }
+
+    // 获取当前环境（如果有运行的DL服务）
+    CachedEnvironment currentEnv;
+    bool hasRunningService = false;
+    if (m_taskController && m_taskController->dlService()) {
+        auto *dlService = m_taskController->dlService();
+        if (dlService->isRunning()) {
+            currentEnv = cacheMgr->getEnvironment(dlService->currentEnvironmentPath());
+            hasRunningService = currentEnv.isValid;
+        }
+    }
+
+    // 构建全面的 GPU 信息报告
+    QString report;
+    report += "<h2>🎮 GPU 检测与环境配置报告</h2>";
+    report += "<hr>";
+
+    // ========== 系统概览 ==========
+    report += "<h3>📊 系统概览</h3>";
+
+    // 统计 GPU 环境数量
+    int gpuEnvCount = 0;
+    int cpuEnvCount = 0;
+    int noTorchCount = 0;
+    CachedEnvironment bestGpuEnv;
+
+    for (const auto &env : allEnvs) {
+        if (!env.isValid) continue;
+        if (env.hasGpu()) {
+            gpuEnvCount++;
+            // 记录显存最大的GPU环境
+            if (bestGpuEnv.gpuMemory.isEmpty() ||
+                env.gpuMemory.toInt() > bestGpuEnv.gpuMemory.toInt()) {
+                bestGpuEnv = env;
+            }
+        } else if (env.hasTorch) {
+            cpuEnvCount++;
+        } else {
+            noTorchCount++;
+        }
+    }
+
+    report += QString("<p>发现 <b>%1</b> 个有效 Python 环境:</p>").arg(allEnvs.size());
+    report += "<ul>";
+    if (gpuEnvCount > 0) {
+        report += QString("<li style='color: green;'>✓ %1 个环境支持 GPU 加速</li>").arg(gpuEnvCount);
+    }
+    if (cpuEnvCount > 0) {
+        report += QString("<li style='color: orange;'>⚠ %1 个环境仅支持 CPU</li>").arg(cpuEnvCount);
+    }
+    if (noTorchCount > 0) {
+        report += QString("<li>%1 个环境未安装 PyTorch</li>").arg(noTorchCount);
+    }
+    report += "</ul>";
+
+    // ========== 当前环境状态 ==========
+    report += "<h3>🎯 当前环境状态</h3>";
+    if (hasRunningService) {
+        report += QString("<p><b>当前使用环境:</b> %1</p>").arg(currentEnv.name);
+        report += QString("<p><b>Python 版本:</b> %1</p>").arg(currentEnv.pythonVersion);
+        report += QString("<p><b>PyTorch 版本:</b> %1</p>").arg(
+            currentEnv.torchVersion.isEmpty() ? "未安装" : currentEnv.torchVersion);
+
+        if (currentEnv.hasGpu()) {
+            report += QString("<p style='color: green;'><b>✓ GPU 加速已启用</b></p>");
+            report += QString("<p><b>GPU:</b> %1</p>").arg(currentEnv.gpuName);
+            report += QString("<p><b>显存:</b> %1</p>").arg(currentEnv.gpuMemory);
+            report += QString("<p><b>CUDA 版本:</b> %1</p>").arg(currentEnv.cudaVersion);
+        } else {
+            report += QString("<p style='color: orange;'><b>⚠ 当前使用 CPU 模式</b></p>");
+        }
+    } else {
+        report += "<p style='color: #666;'>暂无运行中的 DL 服务</p>";
+        if (gpuEnvCount > 0) {
+            report += QString("<p>建议使用支持 GPU 的环境: <b>%1</b></p>").arg(bestGpuEnv.name);
+        }
+    }
+
+    // ========== 环境详细信息 ==========
+    if (!allEnvs.isEmpty()) {
+        report += "<h3>🔍 环境详细信息</h3>";
+        report += "<table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse;'>";
+        report += "<tr style='background: #f0f0f0;'><th>环境</th><th>Python</th><th>PyTorch</th><th>GPU 状态</th></tr>";
+
+        for (const auto &env : allEnvs) {
+            if (!env.isValid) continue;
+
+            QString gpuStatus;
+            QString rowStyle;
+            if (env.hasGpu()) {
+                gpuStatus = QString("✓ %1 (%2)").arg(env.gpuName, env.gpuMemory);
+                rowStyle = "style='background: #e8f5e9;'";
+            } else if (env.hasTorch) {
+                gpuStatus = "CPU Only";
+                rowStyle = "style='background: #fff3e0;'";
+            } else {
+                gpuStatus = "No PyTorch";
+                rowStyle = "";
+            }
+
+            // 标记当前使用的环境
+            QString envName = env.name;
+            if (hasRunningService && env.path == currentEnv.path) {
+                envName += " ●";
+                rowStyle = "style='background: #e3f2fd; font-weight: bold;'";
+            }
+
+            report += QString("<tr %1><td>%2</td><td>%3</td><td>%4</td><td>%5</td></tr>")
+                          .arg(rowStyle, envName, env.pythonVersion,
+                               env.torchVersion.isEmpty() ? "-" : env.torchVersion, gpuStatus);
+        }
+        report += "</table>";
+    }
+
+    // ========== 环境配置指导 ==========
+    report += "<h3>💡 环境配置指导</h3>";
+
+    if (gpuEnvCount == 0) {
+        report += "<p style='color: orange;'><b>⚠ 未检测到支持 GPU 的环境</b></p>";
+        report += "<p>要使用 GPU 加速，请按以下步骤操作:</p>";
+        report += "<ol>";
+        report += "<li><b>检查 NVIDIA 驱动:</b><br>";
+        report += "确保已安装 NVIDIA GPU 驱动。在命令提示符中运行: <code>nvidia-smi</code></li>";
+        report += "<li><b>安装 CUDA 版本的 PyTorch:</b><br>";
+        report += "<pre style='background: #f5f5f5; padding: 8px; margin: 5px 0;'>";
+        report += "# CUDA 12.4 版本（推荐）\n";
+        report += "pip install torch==2.5.0 torchvision==0.20.0 ";
+        report += "--index-url https://download.pytorch.org/whl/cu124\n\n";
+        report += "# CUDA 11.8 版本\n";
+        report += "pip install torch==2.5.0 torchvision==0.20.0 ";
+        report += "--index-url https://download.pytorch.org/whl/cu118";
+        report += "</pre></li>";
+        report += "<li><b>安装 ultralytics:</b><br>";
+        report += "<pre style='background: #f5f5f5; padding: 8px; margin: 5px 0;'>";
+        report += "pip install ultralytics";
+        report += "</pre></li>";
+        report += "<li><b>验证安装:</b><br>";
+        report += "在 Python 中运行: <code>import torch; print(torch.cuda.is_available())</code></li>";
+        report += "</ol>";
+    } else {
+        report += "<p style='color: green;'>✓ 已检测到支持 GPU 的环境</p>";
+        report += "<p>如需创建新的 GPU 环境:</p>";
+        report += "<pre style='background: #f5f5f5; padding: 8px;'>";
+        report += "# 使用 conda 创建新环境\n";
+        report += "conda create -n gpu python=3.11\n";
+        report += "conda activate gpu\n\n";
+        report += "# 安装 PyTorch (GPU 版本)\n";
+        report += "pip install torch torchvision ";
+        report += "--index-url https://download.pytorch.org/whl/cu124\n\n";
+        report += "# 安装 ultralytics\n";
+        report += "pip install ultralytics";
+        report += "</pre>";
+    }
+
+    // ========== 常见问题 ==========
+    report += "<h3>❓ 常见问题</h3>";
+    report += "<details><summary><b>PyTorch 已安装但 GPU 不可用</b></summary>";
+    report += "<p>可能安装了 CPU 版本的 PyTorch。检查方法:</p>";
+    report += "<pre style='background: #f5f5f5; padding: 8px;'>";
+    report += "python -c \"import torch; print(torch.__version__)\"\n";
+    report += "# 如果版本号不含 '+cu'，则是 CPU 版本";
+    report += "</pre>";
+    report += "<p>解决方法: 先卸载再安装 GPU 版本</p>";
+    report += "<pre style='background: #f5f5f5; padding: 8px;'>";
+    report += "pip uninstall torch torchvision\n";
+    report += "pip install torch torchvision ";
+    report += "--index-url https://download.pytorch.org/whl/cu124";
+    report += "</pre></details><br>";
+
+    report += "<details><summary><b>CUDA 版本不匹配</b></summary>";
+    report += "<p>PyTorch 需要与系统 CUDA 版本兼容。使用以下命令查看系统 CUDA 版本:</p>";
+    report += "<pre style='background: #f5f5f5; padding: 8px;'>nvidia-smi</pre>";
+    report += "<p>选择与 CUDA 版本匹配的 PyTorch:</p>";
+    report += "<ul>";
+    report += "<li>CUDA 12.x: 使用 cu124</li>";
+    report += "<li>CUDA 11.8: 使用 cu118</li>";
+    report += "<li>CUDA 11.7: 使用 cu117</li>";
+    report += "</ul></details>";
+
+    report += "<hr>";
+    report += QString("<p><small>检测时间: %1 | "
+                      "提示: 可通过菜单『工具→批量处理』切换不同环境进行测试</small></p>")
+                      .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
+
+    // 使用更大的对话框显示报告
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(tr("GPU 检测与环境配置报告"));
+    msgBox.setTextFormat(Qt::RichText);
+    msgBox.setText(report);
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setDefaultButton(QMessageBox::Ok);
+
+    // 设置更大的尺寸
+    msgBox.setStyleSheet("QMessageBox { min-width: 800px; }"
+                         "QLabel { min-width: 750px; }");
+
+    msgBox.exec();
 }
 
 /**

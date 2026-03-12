@@ -40,7 +40,27 @@ CachedEnvironment::CachedEnvironment(const PythonEnvironment &env)
     , hasOpenCV(false)
     , hasNumPy(false)
     , validationTimeMs(0)
+    , cudaAvailable(false)
+    , cudaDeviceCount(0)
 {
+}
+
+QString CachedEnvironment::getGpuStatusString() const
+{
+    if (!hasTorch) {
+        return "No PyTorch";
+    }
+    if (!cudaAvailable || cudaDeviceCount == 0) {
+        return "CPU Only";
+    }
+    QString status = gpuName;
+    if (!gpuMemory.isEmpty()) {
+        status += QString(" (%1)").arg(gpuMemory);
+    }
+    if (cudaDeviceCount > 1) {
+        status += QString(" [x%1]").arg(cudaDeviceCount);
+    }
+    return status;
 }
 
 bool CachedEnvironment::isExpired(int maxAgeHours) const
@@ -202,7 +222,7 @@ CachedEnvironment EnvironmentCacheManager::validateEnvironment(const QString &pa
         env.type = "system";
     }
 
-    // 执行验证脚本
+    // 执行验证脚本（包含 GPU 检测）
     QString checkScript = R"(
 import sys
 import json
@@ -214,7 +234,12 @@ result = {
     "has_torch": False,
     "torch_version": None,
     "has_opencv": False,
-    "has_numpy": False
+    "has_numpy": False,
+    "cuda_available": False,
+    "cuda_device_count": 0,
+    "cuda_version": None,
+    "gpu_name": None,
+    "gpu_memory": None
 }
 
 try:
@@ -228,6 +253,20 @@ try:
     import torch
     result["has_torch"] = True
     result["torch_version"] = torch.__version__
+
+    # GPU 检测
+    result["cuda_available"] = torch.cuda.is_available()
+    if result["cuda_available"]:
+        result["cuda_device_count"] = torch.cuda.device_count()
+        if result["cuda_device_count"] > 0:
+            # 获取第一个 GPU 的信息
+            device_props = torch.cuda.get_device_properties(0)
+            result["gpu_name"] = device_props.name
+            # 显存信息（MB）
+            total_memory_mb = device_props.total_memory // (1024 * 1024)
+            result["gpu_memory"] = f"{total_memory_mb}MB"
+            # CUDA 版本
+            result["cuda_version"] = torch.version.cuda
 except ImportError:
     pass
 
@@ -272,6 +311,13 @@ print(json.dumps(result))
                 env.torchVersion = obj["torch_version"].toString();
                 env.hasOpenCV = obj["has_opencv"].toBool();
                 env.hasNumPy = obj["has_numpy"].toBool();
+
+                // GPU 信息
+                env.cudaAvailable = obj["cuda_available"].toBool();
+                env.cudaDeviceCount = obj["cuda_device_count"].toInt();
+                env.cudaVersion = obj["cuda_version"].toString();
+                env.gpuName = obj["gpu_name"].toString();
+                env.gpuMemory = obj["gpu_memory"].toString();
             }
         }
     }
@@ -421,6 +467,12 @@ void EnvironmentCacheManager::saveCache()
             obj["validatedAt"] = env.validatedAt.toString(Qt::ISODate);
             obj["cacheUpdatedAt"] = env.cacheUpdatedAt.toString(Qt::ISODate);
             obj["validationTimeMs"] = env.validationTimeMs;
+            // GPU 信息
+            obj["cudaAvailable"] = env.cudaAvailable;
+            obj["cudaDeviceCount"] = env.cudaDeviceCount;
+            obj["cudaVersion"] = env.cudaVersion;
+            obj["gpuName"] = env.gpuName;
+            obj["gpuMemory"] = env.gpuMemory;
             envArray.append(obj);
         }
     }
@@ -483,6 +535,12 @@ void EnvironmentCacheManager::loadCache()
                     env.validatedAt = QDateTime::fromString(obj["validatedAt"].toString(), Qt::ISODate);
                     env.cacheUpdatedAt = QDateTime::fromString(obj["cacheUpdatedAt"].toString(), Qt::ISODate);
                     env.validationTimeMs = obj["validationTimeMs"].toInt();
+                    // GPU 信息
+                    env.cudaAvailable = obj["cudaAvailable"].toBool();
+                    env.cudaDeviceCount = obj["cudaDeviceCount"].toInt();
+                    env.cudaVersion = obj["cudaVersion"].toString();
+                    env.gpuName = obj["gpuName"].toString();
+                    env.gpuMemory = obj["gpuMemory"].toString();
 
                     // 验证路径是否仍然存在
                     env.isValid = env.isValid && QFile::exists(env.path);

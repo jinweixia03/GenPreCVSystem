@@ -44,6 +44,13 @@
 #include <QRandomGenerator>
 #include <QDialog>
 #include <QGroupBox>
+#include <QThread>
+
+#ifdef Q_OS_WIN
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace GenPreCVSystem {
 namespace Controllers {
@@ -358,28 +365,62 @@ QString TaskController::getCurrentImageForInference()
         return getCurrentImagePath();
     }
 
-    // 确保文件已完全写入磁盘
+    // 确保文件已完全写入磁盘 - 使用平台特定API强制刷新
+#ifdef Q_OS_WIN
+    // Windows: 使用 FlushFileBuffers 确保写入物理磁盘
+    HANDLE hFile = CreateFileW(
+        reinterpret_cast<const wchar_t*>(tempPath.utf16()),
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr
+    );
+    if (hFile != INVALID_HANDLE_VALUE) {
+        FlushFileBuffers(hFile);
+        CloseHandle(hFile);
+    }
+#else
+    // Linux/Mac: 使用 fsync
     QFile file(tempPath);
     if (file.open(QIODevice::ReadOnly)) {
-        // 刷新文件系统缓冲区
-        file.flush();
+        int fd = file.handle();
+        if (fd != -1) {
+            ::fsync(fd);
+        }
         file.close();
     }
+#endif
+
+    // 等待一小段时间确保文件系统完成写入
+    QThread::msleep(50);
 
     // 验证文件大小
     QFileInfo fileInfo(tempPath);
-    if (fileInfo.size() == 0) {
+    qint64 fileSize = fileInfo.size();
+    int verifyRetries = 3;
+    while (fileSize == 0 && verifyRetries-- > 0) {
+        QThread::msleep(50);
+        fileInfo.refresh();
+        fileSize = fileInfo.size();
+    }
+
+    if (fileSize == 0) {
         emit logMessage("警告: 临时图像文件大小为0，重试保存");
         // 重试一次
         if (!currentPixmap.save(tempPath, "PNG")) {
             emit logMessage("重试保存临时图像失败");
             return getCurrentImagePath();
         }
+        // 再次验证
+        fileInfo.refresh();
+        fileSize = fileInfo.size();
     }
 
     emit logMessage(QString("使用当前显示的图像进行推理: %1 (%2 KB)")
                     .arg(tempPath)
-                    .arg(fileInfo.size() / 1024.0, 0, 'f', 2));
+                    .arg(fileSize / 1024.0, 0, 'f', 2));
 
     m_tempImagePath = tempPath;
     return tempPath;

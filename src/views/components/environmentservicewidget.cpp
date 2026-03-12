@@ -893,8 +893,9 @@ void EnvironmentServiceWidget::updateModelList(Models::CVTask task)
     QString appDir = QCoreApplication::applicationDirPath();
     QDir dir(appDir);
 
-    // 尝试找到 resources/models 目录
+    // 尝试找到 models 目录（优先 Release 目录下的 models）
     QStringList possiblePaths = {
+        appDir + "/models",  // Release 目录下的 models
         appDir + "/../src/resources/models",
         appDir + "/src/resources/models",
         appDir + "/../../src/resources/models",
@@ -916,7 +917,7 @@ void EnvironmentServiceWidget::updateModelList(Models::CVTask task)
     }
 
     if (basePath.isEmpty()) {
-        basePath = QDir::cleanPath(appDir + "/../src/resources/models");
+        basePath = QDir::cleanPath(appDir + "/models");  // 默认使用 Release 下的 models
     }
 
     // 根据任务类型返回子目录
@@ -1008,8 +1009,9 @@ QString EnvironmentServiceWidget::findFirstAvailableModel(Models::CVTask task) c
     QString appDir = QCoreApplication::applicationDirPath();
     QDir dir(appDir);
 
-    // 尝试找到 resources/models 目录
+    // 尝试找到 models 目录（优先 Release 目录下的 models）
     QStringList possiblePaths = {
+        appDir + "/models",  // Release 目录下的 models
         appDir + "/../src/resources/models",
         appDir + "/src/resources/models",
         appDir + "/../../src/resources/models",

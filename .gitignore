@@ -136,3 +136,8 @@ CMakeUserPresets.json
 
 # Data directory
 /data/
+
+# Distribution packages
+*.zip
+*.7z
+*.tar.gz

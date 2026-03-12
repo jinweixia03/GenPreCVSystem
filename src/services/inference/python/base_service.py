@@ -305,9 +305,9 @@ class ImageServiceMixin:
         if file_size == 0:
             return False, "图像文件为空或正在写入"
 
-        if file_size > self.MAX_IMAGE_SIZE:
-            size_gb = file_size / (1024**3)
-            return False, f"图像文件过大 ({size_gb:.2f} GB > 1 GB)"
+        # 检查文件大小是否为负数（某些文件系统错误可能导致此问题）
+        if file_size < 0:
+            return False, f"文件大小异常: {file_size}"
 
         return True, ""
 

@@ -209,17 +209,6 @@ void AppSettings::resetToDefaults()
     settings.setValue("General/defaultExportDirectory",
                       QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
     settings.setValue("General/maxRecentFiles", 10);
-    settings.setValue("General/autoSaveResults", false);
-
-    // DL 设置
-    settings.setValue("DL/defaultConfThreshold", 0.25f);
-    settings.setValue("DL/defaultIOUThreshold", 0.45f);
-    settings.setValue("DL/defaultImageSize", 640);
-
-    // 导出设置
-    settings.setValue("Export/format", "JSON");
-    settings.setValue("Export/includeTimestamp", true);
-    settings.setValue("Export/includeMetadata", true);
 
     settings.sync();
 }

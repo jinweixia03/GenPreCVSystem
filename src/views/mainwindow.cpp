@@ -642,12 +642,24 @@ void MainWindow::setupDockWidgets()
     treeViewFiles->setFrameShape(QFrame::NoFrame);
 
     fileModel = new QFileSystemModel(this);
-    fileModel->setRootPath(QDir::rootPath());
+
+    // 使用设置的默认打开目录
+    QString defaultDir = GenPreCVSystem::Utils::AppSettings::defaultOpenDirectory();
+    if (defaultDir.isEmpty() || !QDir(defaultDir).exists()) {
+        defaultDir = QDir::homePath();
+    }
+    fileModel->setRootPath(defaultDir);
+    m_currentBrowsePath = defaultDir;
 
     proxyModel = new ImageFileFilterProxyModel(this);
     proxyModel->setSourceModel(fileModel);
 
     treeViewFiles->setModel(proxyModel);
+
+    // 设置文件树的根索引为默认目录
+    QModelIndex rootIndex = fileModel->index(defaultDir);
+    QModelIndex proxyRootIndex = proxyModel->mapFromSource(rootIndex);
+    treeViewFiles->setRootIndex(proxyRootIndex);
     treeViewFiles->hideColumn(1);
     treeViewFiles->hideColumn(2);
     treeViewFiles->hideColumn(3);
@@ -1499,6 +1511,22 @@ void MainWindow::on_actionTaskEdgeDetection_triggered()
 void MainWindow::on_actionSettings_triggered()
 {
     GenPreCVSystem::Views::SettingsDialog dialog(this);
+
+    // 连接设置变更信号
+    connect(&dialog, &GenPreCVSystem::Views::SettingsDialog::settingsChanged,
+            this, [this]() {
+                // 更新文件浏览器的默认路径
+                QString defaultDir = GenPreCVSystem::Utils::AppSettings::defaultOpenDirectory();
+                if (!defaultDir.isEmpty() && QDir(defaultDir).exists()) {
+                    fileModel->setRootPath(defaultDir);
+                    QModelIndex rootIndex = fileModel->index(defaultDir);
+                    QModelIndex proxyRootIndex = proxyModel->mapFromSource(rootIndex);
+                    treeViewFiles->setRootIndex(proxyRootIndex);
+                    m_currentBrowsePath = defaultDir;
+                    labelCurrentPath->setText(defaultDir);
+                }
+            });
+
     dialog.exec();
 }
 
@@ -1771,59 +1799,81 @@ void MainWindow::onRecentFileTriggered(const QString &filePath)
  */
 void MainWindow::on_actionDocumentation_triggered()
 {
-    QMessageBox::information(this, "使用文档",
-        "<h2>GenPreCVSystem 使用文档</h2>"
-        "<p>计算机视觉预处理系统 - 支持图像分类、目标检测、语义分割、姿态检测等任务</p>"
+    QString docText =
+        "<div style='font-family: Microsoft YaHei, Segoe UI, sans-serif; line-height: 1.6;'>"
+        "<h2 style='color: #0066cc; text-align: center;'>📖 GenPreCVSystem 使用文档</h2>"
+        "<p style='text-align: center; color: #666;'>工业级计算机视觉预处理系统</p>"
         "<hr>"
-        "<h3>📁 文件操作</h3>"
+        "<h3 style='color: #0066cc;'>📁 文件操作</h3>"
         "<ul>"
-        "<li><b>打开图片</b> (Ctrl+O) - 打开单个图片文件</li>"
-        "<li><b>打开文件夹</b> (Ctrl+D) - 浏览图片目录</li>"
-        "<li><b>关闭图片</b> (Ctrl+W) - 关闭当前标签页</li>"
-        "<li><b>保存</b> (Ctrl+S) - 保存当前图片</li>"
-        "<li><b>另存为</b> (Ctrl+Shift+S) - 保存到新文件</li>"
-        "<li><b>导出</b> (Ctrl+Shift+E) - 导出处理结果</li>"
+        "<li><b>打开图片</b> (<span style='background: #e8e8e8; padding: 2px 5px; border-radius: 3px;'>Ctrl+O</span>) - 打开单个图片文件，支持批量选择</li>"
+        "<li><b>打开文件夹</b> (<span style='background: #e8e8e8; padding: 2px 5px; border-radius: 3px;'>Ctrl+D</span>) - 在左侧文件浏览器中浏览图片目录</li>"
+        "<li><b>关闭图片</b> (<span style='background: #e8e8e8; padding: 2px 5px; border-radius: 3px;'>Ctrl+W</span>) - 关闭当前标签页</li>"
+        "<li><b>保存</b> (<span style='background: #e8e8e8; padding: 2px 5px; border-radius: 3px;'>Ctrl+S</span>) - 保存当前图片（覆盖原文件或创建副本）</li>"
+        "<li><b>另存为</b> (<span style='background: #e8e8e8; padding: 2px 5px; border-radius: 3px;'>Ctrl+Shift+S</span>) - 保存到新文件</li>"
+        "<li><b>导出结果</b> - 导出检测结果为 JSON/CSV/XML 格式</li>"
         "</ul>"
-        "<h3>🔍 视图操作</h3>"
+        "<h3 style='color: #0066cc;'>🔍 视图操作</h3>"
         "<ul>"
-        "<li><b>滚轮</b> - 缩放图片</li>"
-        "<li><b>左键拖拽</b> - 平移图片</li>"
-        "<li><b>放大</b> (Ctrl++) - 放大显示</li>"
-        "<li><b>缩小</b> (Ctrl+-) - 缩小显示</li>"
-        "<li><b>适应窗口</b> (Ctrl+F) - 自适应显示</li>"
-        "<li><b>实际大小</b> (Ctrl+1) - 100%显示</li>"
+        "<li><b>滚轮</b> - 缩放图片（向上放大，向下缩小）</li>"
+        "<li><b>左键拖拽</b> - 平移图片（放大后适用）</li>"
+        "<li><b>放大</b> (<span style='background: #e8e8e8; padding: 2px 5px; border-radius: 3px;'>Ctrl++</span>) - 放大显示</li>"
+        "<li><b>缩小</b> (<span style='background: #e8e8e8; padding: 2px 5px; border-radius: 3px;'>Ctrl+-</span>) - 缩小显示</li>"
+        "<li><b>适应窗口</b> (<span style='background: #e8e8e8; padding: 2px 5px; border-radius: 3px;'>Ctrl+F</span>) - 自适应窗口大小显示</li>"
+        "<li><b>实际大小</b> (<span style='background: #e8e8e8; padding: 2px 5px; border-radius: 3px;'>Ctrl+1</span>) - 100%原始尺寸显示</li>"
         "</ul>"
-        "<h3>🖼 图像处理</h3>"
+        "<h3 style='color: #0066cc;'>🖼 图像处理</h3>"
         "<ul>"
-        "<li><b>灰度化</b> - 转换为灰度图</li>"
-        "<li><b>反色</b> - 颜色反转</li>"
-        "<li><b>模糊</b> - 高斯模糊处理</li>"
-        "<li><b>锐化</b> - 边缘锐化</li>"
-        "<li><b>二值化</b> - 图像二值化</li>"
-        "<li><b>旋转</b> (Ctrl+L/R) - 90°旋转</li>"
-        "<li><b>翻转</b> (Ctrl+H) - 水平/垂直翻转</li>"
+        "<li><b>灰度化</b> - 将彩色图像转换为灰度图</li>"
+        "<li><b>反色</b> - 颜色反转（负片效果）</li>"
+        "<li><b>模糊</b> - 高斯模糊处理，可配置模糊半径</li>"
+        "<li><b>锐化</b> - 边缘锐化，增强图像细节</li>"
+        "<li><b>二值化</b> - 图像转换为黑白二值图</li>"
+        "<li><b>向左旋转</b> (<span style='background: #e8e8e8; padding: 2px 5px; border-radius: 3px;'>Ctrl+L</span>) - 逆时针旋转 90°</li>"
+        "<li><b>向右旋转</b> (<span style='background: #e8e8e8; padding: 2px 5px; border-radius: 3px;'>Ctrl+R</span>) - 顺时针旋转 90°</li>"
+        "<li><b>水平翻转</b> (<span style='background: #e8e8e8; padding: 2px 5px; border-radius: 3px;'>Ctrl+H</span>) - 左右镜像</li>"
+        "<li><b>垂直翻转</b> (<span style='background: #e8e8e8; padding: 2px 5px; border-radius: 3px;'>Ctrl+Shift+H</span>) - 上下镜像</li>"
         "</ul>"
-        "<h3>🎯 CV 任务</h3>"
+        "<h3 style='color: #0066cc;'>🎯 CV 任务</h3>"
         "<ul>"
-        "<li><b>图像分类</b> - 识别图像类别</li>"
-        "<li><b>目标检测</b> - 检测并标注目标</li>"
-        "<li><b>语义分割</b> - 像素级分割</li>"
-        "<li><b>姿态检测</b> - 人体关键点检测</li>"
+        "<li><b>图像分类</b> - 识别图像主体类别，输出 Top-K 结果</li>"
+        "<li><b>目标检测</b> - 检测并标注图像中的目标对象（边界框）</li>"
+        "<li><b>语义分割</b> - 像素级分割，输出目标轮廓多边形</li>"
+        "<li><b>关键点检测</b> - 人体/物体关键点定位（姿态估计）</li>"
+        "<li><b>道路病害检测</b> - 专用模型检测路面病害</li>"
+        "<li><b>井盖病害检测</b> - 专用模型检测井盖损坏情况</li>"
+        "<li><b>遥感影像小样本分类</b> - 基于 Few-Shot Learning 的遥感图像分类</li>"
+        "<li><b>图像增强</b> - 调整亮度、对比度、饱和度、锐度</li>"
+        "<li><b>图像去噪</b> - 去除图像噪声，支持多种去噪算法</li>"
+        "<li><b>边缘检测</b> - 检测图像边缘（Sobel、Canny、Laplacian）</li>"
         "</ul>"
-        "<h3>⚡ 批量处理</h3>"
+        "<h3 style='color: #0066cc;'>⚡ 批量处理</h3>"
         "<ul>"
-        "<li><b>批量处理</b> (Ctrl+Shift+B) - 批量处理文件夹图像</li>"
-        "<li>支持导出 DL 格式标注</li>"
-        "<li>支持 ZIP 压缩包导出</li>"
+        "<li><b>批量处理</b> - 对文件夹内所有图片执行相同任务</li>"
+        "<li>支持进度显示和取消操作</li>"
+        "<li>支持导出 JSON/CSV/XML 格式结果</li>"
+        "<li>支持导出标注图像（带检测框/掩膜）</li>"
         "</ul>"
-        "<h3>⚙ 设置</h3>"
+        "<h3 style='color: #0066cc;'>⚙️ 设置</h3>"
         "<ul>"
-        "<li>配置默认打开/导出目录</li>"
-        "<li>设置最近文件数量</li>"
-        "<li>配置导出格式 (JSON/CSV)</li>"
+        "<li><b>默认打开目录</b> - 设置软件启动后左侧文件浏览器默认显示的目录</li>"
+        "<li><b>默认导出目录</b> - 设置导出文件的默认保存位置</li>"
+        "<li><b>最近文件数量</b> - 设置文件菜单中显示的最近文件数量</li>"
+        "<li><b>导出格式</b> - 选择默认导出格式（JSON/CSV）</li>"
+        "<li><b>Python 环境</b> - 在右侧面板选择用于 DL 推理的 Python 环境</li>"
         "</ul>"
         "<hr>"
-        "<p>提示：选择带 ✓ 的 Python 环境以启用 DL 功能</p>");
+        "<p style='background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin: 10px 0;'>"
+        "<b>💡 提示：</b>使用 CV 任务功能前，请先在右侧参数面板选择带 ✓ 标记的 Python 环境，并加载相应的模型文件。</p>"
+        "</div>";
+
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle("使用文档");
+    msgBox.setTextFormat(Qt::RichText);
+    msgBox.setText(docText);
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setStyleSheet("QMessageBox { background-color: white; } QLabel { min-width: 600px; }");
+    msgBox.exec();
 }
 
 /**
@@ -1832,31 +1882,62 @@ void MainWindow::on_actionDocumentation_triggered()
 void MainWindow::on_actionShortcuts_triggered()
 {
     QString shortcuts =
-        "<h2>快捷键列表</h2>"
-        "<table border='1' cellpadding='5' cellspacing='0'>"
-        "<tr><th>功能</th><th>快捷键</th></tr>"
-        "<tr><td>打开图片</td><td>Ctrl+O</td></tr>"
-        "<tr><td>打开文件夹</td><td>Ctrl+D</td></tr>"
-        "<tr><td>关闭图片</td><td>Ctrl+W</td></tr>"
-        "<tr><td>保存图片</td><td>Ctrl+S</td></tr>"
-        "<tr><td>另存为</td><td>Ctrl+Shift+S</td></tr>"
-        "<tr><td>复制图片</td><td>Ctrl+C</td></tr>"
-        "<tr><td>粘贴图片</td><td>Ctrl+V</td></tr>"
-        "<tr><td>向左旋转</td><td>Ctrl+L</td></tr>"
-        "<tr><td>向右旋转</td><td>Ctrl+R</td></tr>"
-        "<tr><td>水平翻转</td><td>Ctrl+H</td></tr>"
-        "<tr><td>垂直翻转</td><td>Ctrl+Shift+H</td></tr>"
-        "<tr><td>放大</td><td>Ctrl++</td></tr>"
-        "<tr><td>缩小</td><td>Ctrl+-</td></tr>"
-        "<tr><td>适应窗口</td><td>Ctrl+F</td></tr>"
-        "<tr><td>实际大小</td><td>Ctrl+1</td></tr>"
-        "<tr><td>运行处理</td><td>F5</td></tr>"
-        "<tr><td>停止处理</td><td>Shift+F5</td></tr>"
-        "<tr><td>设置</td><td>Ctrl+,</td></tr>"
-        "<tr><td>帮助</td><td>F1</td></tr>"
-        "</table>";
+        "<div style='font-family: Microsoft YaHei, Segoe UI, sans-serif;'>"
+        "<h2 style='text-align: center; color: #0066cc;'>⌨️ 快捷键列表</h2>"
+        "<table style='border-collapse: collapse; width: 100%;' cellpadding='8' cellspacing='0'>"
+        "<tr style='background-color: #0066cc; color: white;'>"
+        "<th style='text-align: left; border: 1px solid #ddd; padding: 10px;'>功能</th>"
+        "<th style='text-align: center; border: 1px solid #ddd; padding: 10px; width: 150px;'>快捷键</th></tr>"
+        "<tr style='background-color: #f9f9f9;'><td style='border: 1px solid #ddd; padding: 8px;'>📂 打开图片</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+O</td></tr>"
+        "<tr><td style='border: 1px solid #ddd; padding: 8px;'>📁 打开文件夹</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+D</td></tr>"
+        "<tr style='background-color: #f9f9f9;'><td style='border: 1px solid #ddd; padding: 8px;'>❌ 关闭当前标签页</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+W</td></tr>"
+        "<tr><td style='border: 1px solid #ddd; padding: 8px;'>💾 保存图片</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+S</td></tr>"
+        "<tr style='background-color: #f9f9f9;'><td style='border: 1px solid #ddd; padding: 8px;'>💾 另存为</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+Shift+S</td></tr>"
+        "<tr><td style='border: 1px solid #ddd; padding: 8px;'>📋 复制图片</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+C</td></tr>"
+        "<tr style='background-color: #f9f9f9;'><td style='border: 1px solid #ddd; padding: 8px;'>📋 粘贴图片</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+V</td></tr>"
+        "<tr><td style='border: 1px solid #ddd; padding: 8px;'>↺ 向左旋转 90°</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+L</td></tr>"
+        "<tr style='background-color: #f9f9f9;'><td style='border: 1px solid #ddd; padding: 8px;'>↻ 向右旋转 90°</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+R</td></tr>"
+        "<tr><td style='border: 1px solid #ddd; padding: 8px;'>↔️ 水平翻转</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+H</td></tr>"
+        "<tr style='background-color: #f9f9f9;'><td style='border: 1px solid #ddd; padding: 8px;'>↕️ 垂直翻转</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+Shift+H</td></tr>"
+        "<tr><td style='border: 1px solid #ddd; padding: 8px;'>🔍 放大</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl++</td></tr>"
+        "<tr style='background-color: #f9f9f9;'><td style='border: 1px solid #ddd; padding: 8px;'>🔍 缩小</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+-</td></tr>"
+        "<tr><td style='border: 1px solid #ddd; padding: 8px;'>⊘ 适应窗口</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+F</td></tr>"
+        "<tr style='background-color: #f9f9f9;'><td style='border: 1px solid #ddd; padding: 8px;'>⊘ 实际大小</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+1</td></tr>"
+        "<tr><td style='border: 1px solid #ddd; padding: 8px;'>▶️ 运行任务</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>F5</td></tr>"
+        "<tr style='background-color: #f9f9f9;'><td style='border: 1px solid #ddd; padding: 8px;'>⏹️ 停止任务</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Shift+F5</td></tr>"
+        "<tr><td style='border: 1px solid #ddd; padding: 8px;'>⚙️ 打开设置</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>Ctrl+,</td></tr>"
+        "<tr style='background-color: #f9f9f9;'><td style='border: 1px solid #ddd; padding: 8px;'>❓ 帮助</td>"
+        "<td style='text-align: center; border: 1px solid #ddd; font-family: Consolas, monospace; background-color: #e8e8e8; border-radius: 3px;'>F1</td></tr>"
+        "</table>"
+        "<p style='margin-top: 15px; font-size: 11px; color: #666;'>"
+        "💡 提示：在图片查看区域可以使用鼠标滚轮缩放，按住左键拖拽平移</p>"
+        "</div>";
 
-    QMessageBox::information(this, "快捷键", shortcuts);
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle("快捷键帮助");
+    msgBox.setTextFormat(Qt::RichText);
+    msgBox.setText(shortcuts);
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setStyleSheet("QMessageBox { background-color: white; } QLabel { min-width: 500px; }");
+    msgBox.exec();
 }
 
 /**
@@ -1864,20 +1945,49 @@ void MainWindow::on_actionShortcuts_triggered()
  */
 void MainWindow::on_actionAbout_triggered()
 {
-    QMessageBox::about(this, "关于",
+    QString aboutText =
+        "<div style='text-align: center;'>"
         "<h2>GenPreCVSystem</h2>"
-        "<p>版本: 1.0.0</p>"
-        "<p>一个工业级计算机视觉预处理系统</p>"
-        "<p><b>支持的格式：</b>PNG, JPG, JPEG, BMP, GIF, TIFF, WEBP 等图片格式</p>"
+        "<p style='font-size: 12px; color: #666;'>工业级计算机视觉预处理系统</p>"
+        "<p style='font-size: 11px;'>版本: 1.0.0</p>"
+        "</div>"
+        "<hr>"
+        "<p><b>技术架构：</b></p>"
+        "<ul>"
+        "<li>前端：Qt 6.9 + C++17</li>"
+        "<li>后端：Python + Ultralytics YOLO</li>"
+        "<li>通信：JSON IPC via QProcess</li>"
+        "</ul>"
+        "<p><b>支持的任务类型：</b></p>"
+        "<ul>"
+        "<li>图像分类 (Image Classification)</li>"
+        "<li>目标检测 (Object Detection)</li>"
+        "<li>语义分割 (Semantic Segmentation)</li>"
+        "<li>关键点检测 (Keypoint Detection)</li>"
+        "<li>道路病害检测 (Road Damage Detection)</li>"
+        "<li>井盖病害检测 (Manhole Cover Damage Detection)</li>"
+        "<li>遥感影像小样本分类 (Few-Shot Learning)</li>"
+        "<li>图像增强 (Image Enhancement)</li>"
+        "<li>图像去噪 (Image Denoising)</li>"
+        "<li>边缘检测 (Edge Detection)</li>"
+        "</ul>"
+        "<p><b>支持的模型格式：</b>YOLOv8/v9/v10/v11 (.pt, .pth, .onnx)</p>"
+        "<p><b>支持的图像格式：</b>PNG, JPG, JPEG, BMP, GIF, TIFF, WEBP, HEIC 等</p>"
         "<hr>"
         "<p><b>操作说明：</b></p>"
         "<ul>"
         "<li><b>滚轮：</b>缩放图片</li>"
         "<li><b>左键拖拽：</b>平移图片</li>"
-        "<li><b>双击文件：</b>加载图片</li>"
+        "<li><b>双击文件：</b>加载图片到标签页</li>"
+        "<li><b>右键文件/文件夹：</b>打开上下文菜单</li>"
         "</ul>"
         "<hr>"
-        "<p style='color: gray;'>© 2024 GenPreCVSystem. All rights reserved.</p>");
+        "<p style='color: gray; font-size: 10px; text-align: center;'>"
+        "© 2024-2025 GenPreCVSystem. All rights reserved.<br>"
+        "本软件仅供学习和研究使用"
+        "</p>";
+
+    QMessageBox::about(this, "关于 GenPreCVSystem", aboutText);
 }
 
 // ==================== 自定义槽函数 ====================

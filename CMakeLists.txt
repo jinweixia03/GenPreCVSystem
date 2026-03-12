@@ -30,14 +30,11 @@ set(CONFIG_SOURCES
     src/config/tasktypes.h
 )
 
-# Models
+ # Models
 set(MODEL_SOURCES
     src/models/tabdata.h
     src/models/undostack.h
     src/models/pythonenvironment.h
-    # Note: modelinference files require LibTorch and are temporarily excluded
-    # src/models/inference/modelinference.h
-    # src/models/inference/modelinference.cpp
 )
 
 # Services

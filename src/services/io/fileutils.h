@@ -101,6 +101,73 @@ public:
      * @return true 是图片，false 不是图片
      */
     static bool isImageFile(const QString &filePath);
+
+    // ========== 安全验证函数 ==========
+
+    /**
+     * @brief 验证文件路径是否安全（防止路径遍历攻击）
+     * @param filePath 文件路径
+     * @param basePath 允许的基础路径（可选）
+     * @return true 路径安全，false 路径可疑
+     *
+     * 检查项：
+     * - 路径长度限制（最大 4096 字符）
+     * - 禁止包含 .. 路径遍历
+     * - 禁止空路径
+     * - 禁止包含空字节
+     */
+    static bool isValidFilePath(const QString &filePath, const QString &basePath = QString());
+
+    /**
+     * @brief 验证模型文件路径
+     * @param modelPath 模型文件路径
+     * @param errorMsg 错误信息输出
+     * @return true 有效，false 无效
+     *
+     * 检查项：
+     * - 路径安全性
+     * - 文件是否存在
+     * - 文件扩展名（.pt, .pth, .onnx, .engine, .mlmodel）
+     * - 文件大小（最大 5GB）
+     */
+    static bool isValidModelPath(const QString &modelPath, QString &errorMsg);
+
+    /**
+     * @brief 验证图像文件路径
+     * @param imagePath 图像文件路径
+     * @param errorMsg 错误信息输出
+     * @return true 有效，false 无效
+     *
+     * 检查项：
+     * - 路径安全性
+     * - 文件是否存在
+     * - 文件扩展名
+     * - 文件大小（最大 1GB）
+     */
+    static bool isValidImagePath(const QString &imagePath, QString &errorMsg);
+
+    /**
+     * @brief 清理文件路径（规范化并检查安全性）
+     * @param filePath 原始文件路径
+     * @return 清理后的路径，如果不安全则返回空字符串
+     */
+    static QString sanitizeFilePath(const QString &filePath);
+
+    /**
+     * @brief 支持的图像文件扩展名列表
+     */
+    static const QStringList SUPPORTED_IMAGE_EXTENSIONS;
+
+    /**
+     * @brief 支持的模型文件扩展名列表
+     */
+    static const QStringList SUPPORTED_MODEL_EXTENSIONS;
+
+    // ========== 常量定义 ==========
+
+    static constexpr int MAX_PATH_LENGTH = 4096;           ///< 最大路径长度
+    static constexpr qint64 MAX_IMAGE_SIZE = 1024LL * 1024 * 1024;  ///< 最大图像文件大小 (1GB)
+    static constexpr qint64 MAX_MODEL_SIZE = 5LL * 1024 * 1024 * 1024;  ///< 最大模型文件大小 (5GB)
 };
 
 } // namespace Utils

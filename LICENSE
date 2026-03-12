@@ -1,0 +1,87 @@
+Copyright (c) 2024-2025 GenPreCVSystem
+
+All rights reserved.
+
+本软件及相关文档文件（"软件"）的著作权归 GenPreCVSystem 团队所有。
+
+未经著作权人书面许可，任何人不得：
+
+1. 复制、修改、合并、发布、分发、再许可本软件的全部或部分
+2. 将本软件用于商业目的
+3. 对本软件进行反向工程、反编译或试图以其他方式发现源代码
+
+允许的行为：
+
+1. 个人学习、研究使用
+2. 在非商业项目中引用本软件的 API 和文档
+3. 提交 Bug 报告和功能建议
+
+免责声明：
+
+本软件按"原样"提供，不提供任何形式的明示或暗示担保，包括但不限于对适销性、
+特定用途适用性和非侵权性的担保。在任何情况下，作者或版权持有人均不对任何索赔、
+损害或其他责任负责，无论是合同诉讼、侵权行为还是其他方式，由软件或软件的使用
+或其他交易引起或与之相关。
+
+第三方组件：
+
+本软件使用了以下开源组件，其许可证单独适用：
+
+- Qt 6.9.3 - LGPL v3 / Commercial License
+- CMake - BSD 3-Clause License
+- Ultralytics YOLO - AGPL-3.0 License
+- PyTorch - BSD 3-Clause License
+
+联系信息：
+
+如有任何问题，请通过 GitHub Issues 联系我们：
+https://github.com/jinweixia03/GenPreCVSystem/issues
+
+---
+
+GenPreCVSystem Software License
+
+Copyright (c) 2024-2025 GenPreCVSystem
+
+All rights reserved.
+
+This software and associated documentation files (the "Software") are the
+intellectual property of the GenPreCVSystem team.
+
+Without prior written permission from the copyright holder, no one may:
+
+1. Copy, modify, merge, publish, distribute, or sublicense all or part of
+   this Software
+2. Use this Software for commercial purposes
+3. Reverse engineer, decompile, or attempt to discover the source code
+
+Permitted actions:
+
+1. Personal learning and research use
+2. Reference this Software's API and documentation in non-commercial projects
+3. Submit bug reports and feature suggestions
+
+Disclaimer:
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Third-party components:
+
+This software uses the following open-source components, which are subject to
+their respective licenses:
+
+- Qt 6.9.3 - LGPL v3 / Commercial License
+- CMake - BSD 3-Clause License
+- Ultralytics YOLO - AGPL-3.0 License
+- PyTorch - BSD 3-Clause License
+
+Contact:
+
+For any questions, please contact us via GitHub Issues:
+https://github.com/jinweixia03/GenPreCVSystem/issues

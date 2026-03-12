@@ -16,6 +16,7 @@
 #include <QScreen>
 #include <QGuiApplication>
 #include <QApplication>
+#include <QSvgRenderer>
 
 namespace GenPreCVSystem {
 namespace UI {
@@ -52,42 +53,13 @@ void SplashScreen::setupUI()
     m_mainLayout->setSpacing(10);
     m_mainLayout->setContentsMargins(30, 40, 30, 30);
 
-    // ========== Logo 区域（带装饰图标）==========
-    QHBoxLayout *logoLayout = new QHBoxLayout();
-    logoLayout->setSpacing(8);
-
-    // 左侧装饰图标
-    QLabel *leftIcon = new QLabel(this);
-    leftIcon->setText("◇");
-    leftIcon->setStyleSheet("QLabel { font-size: 24px; color: #0066cc; background: transparent; }");
-    leftIcon->setFixedSize(30, 100);
-    leftIcon->setAlignment(Qt::AlignCenter);
-    logoLayout->addWidget(leftIcon);
-
-    // 主 Logo
+    // ========== Logo 区域（使用 SVG）==========
     m_logoLabel = new QLabel(this);
     m_logoLabel->setAlignment(Qt::AlignCenter);
-    // 使用蓝色方块图标作为 Logo
-    m_logoLabel->setText("▣");
-    m_logoLabel->setStyleSheet(
-        "QLabel {"
-        "  font-size: 72px;"
-        "  color: #0066cc;"
-        "  background: transparent;"
-        "}"
-    );
-    m_logoLabel->setFixedSize(100, 100);
-    logoLayout->addWidget(m_logoLabel);
-
-    // 右侧装饰图标
-    QLabel *rightIcon = new QLabel(this);
-    rightIcon->setText("◇");
-    rightIcon->setStyleSheet("QLabel { font-size: 24px; color: #0066cc; background: transparent; }");
-    rightIcon->setFixedSize(30, 100);
-    rightIcon->setAlignment(Qt::AlignCenter);
-    logoLayout->addWidget(rightIcon);
-
-    m_mainLayout->addLayout(logoLayout);
+    m_logoLabel->setFixedSize(120, 120);
+    // Logo 将在 paintEvent 中绘制
+    m_logoLabel->setStyleSheet("QLabel { background: transparent; }");
+    m_mainLayout->addWidget(m_logoLabel, 0, Qt::AlignCenter);
 
     // ========== 标题区域 ==========
     m_titleLabel = new QLabel(this);
@@ -208,6 +180,17 @@ void SplashScreen::paintEvent(QPaintEvent *event)
     // 蓝色边框
     painter.setPen(QPen(QColor("#0066cc"), 2));
     painter.drawRect(rect().adjusted(1, 1, -1, -1));
+
+    // 绘制 SVG Logo
+    QSvgRenderer svgRenderer(QString(":/images/logo-icon.svg"));
+    if (svgRenderer.isValid()) {
+        // 在 m_logoLabel 的位置绘制 Logo
+        QRect logoRect = m_logoLabel->geometry();
+        // 留出边距
+        int padding = 10;
+        logoRect.adjust(padding, padding, -padding, -padding);
+        svgRenderer.render(&painter, logoRect);
+    }
 
     // 绘制角落装饰图案
     painter.setPen(QPen(QColor("#0066cc"), 1));

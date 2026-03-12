@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bgIcon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="eyeIcon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0099cc;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="256" height="256" rx="48" fill="url(#bgIcon)" stroke="#2d3a5c" stroke-width="3"/>
+
+  <!-- 眼睛轮廓 -->
+  <path d="M 48 128 Q 128 48 208 128 Q 128 208 48 128 Z"
+        fill="none" stroke="url(#eyeIcon)" stroke-width="5"/>
+
+  <!-- 瞳孔 -->
+  <circle cx="128" cy="128" r="28" fill="#0a1628" stroke="#00d4ff" stroke-width="2.5"/>
+
+  <!-- 高光 -->
+  <circle cx="136" cy="120" r="8" fill="#00d4ff" opacity="0.5"/>
+  <circle cx="138" cy="118" r="3" fill="#ffffff" opacity="0.8"/>
+
+  <!-- 十字准星 -->
+  <line x1="48" y1="128" x2="208" y2="128" stroke="#41CD52" stroke-width="2" opacity="0.5"/>
+  <line x1="128" y1="48" x2="128" y2="208" stroke="#41CD52" stroke-width="1.5" opacity="0.35"/>
+
+  <!-- 四角标记 -->
+  <rect x="60" y="88" width="6" height="6" rx="1" fill="#41CD52"/>
+  <rect x="190" y="88" width="6" height="6" rx="1" fill="#41CD52"/>
+  <rect x="60" y="162" width="6" height="6" rx="1" fill="#41CD52"/>
+  <rect x="190" y="162" width="6" height="6" rx="1" fill="#41CD52"/>
+</svg>

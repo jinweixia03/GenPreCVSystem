@@ -6,18 +6,18 @@
  * - 图像分类、目标检测、语义分割、姿态检测
  * - 图像增强、去噪、边缘检测
  *
- * 协调 YOLO 服务、图像处理服务和 UI 组件
+ * 协调 DL 服务、图像处理服务和 UI 组件
  */
 
 #include "taskcontroller.h"
-#include "../models/tasktypes.h"
+#include "tasktypes.h"
 #include "parameterpanelfactory.h"
 #include "tabcontroller.h"
-#include "../utils/yoloservice.h"
-#include "../utils/imageprocessservice.h"
-#include "../views/detectionresultdialog.h"
-#include "../widgets/environmentservicewidget.h"
-#include "../ui/mainwindow.h"  // 包含 ImageView 定义
+#include "dlservice.h"
+#include "imageprocessservice.h"
+#include "detectionresultdialog.h"
+#include "environmentservicewidget.h"
+#include "mainwindow.h"  // 包含 ImageView 定义
 #include <QScrollArea>
 #include <QPushButton>
 #include <QLineEdit>
@@ -49,7 +49,7 @@ TaskController::TaskController(QObject *parent)
     , m_paramScrollArea(nullptr)
     , m_taskActionGroup(nullptr)
     , m_currentTask(Models::CVTask::ImageClassification)
-    , m_yoloService(nullptr)
+    , m_dlService(nullptr)
     , m_imageProcessService(nullptr)
     , m_tabController(nullptr)
     , m_tabWidget(nullptr)
@@ -60,8 +60,8 @@ TaskController::TaskController(QObject *parent)
     , m_showBoxes(false)
     , m_showLabels(true)
 {
-    // 创建 YOLO 服务
-    m_yoloService = new Utils::YOLOService(this);
+    // 创建 DL 服务
+    m_dlService = new Utils::DLService(this);
 
     // 创建图像处理服务
     m_imageProcessService = new Utils::ImageProcessService(this);
@@ -71,12 +71,12 @@ TaskController::TaskController(QObject *parent)
 
     // 创建共享的环境服务控件
     m_envServiceWidget = new Widgets::EnvironmentServiceWidget(nullptr);
-    m_envServiceWidget->setYOLOService(m_yoloService);
+    m_envServiceWidget->setDLService(m_dlService);
 
-    // 连接 YOLO 服务信号
-    connect(m_yoloService, &Utils::YOLOService::logMessage,
+    // 连接 DL 服务信号
+    connect(m_dlService, &Utils::DLService::logMessage,
             this, &TaskController::logMessage);
-    connect(m_yoloService, &Utils::YOLOService::detectionCompleted,
+    connect(m_dlService, &Utils::DLService::detectionCompleted,
             this, &TaskController::onDetectionCompleted);
 
     // 连接图像处理服务信号
@@ -89,9 +89,9 @@ TaskController::TaskController(QObject *parent)
 
 TaskController::~TaskController()
 {
-    // YOLO 服务会被 Qt 的父子关系自动删除
-    if (m_yoloService) {
-        m_yoloService->stop();
+    // DL 服务会被 Qt 的父子关系自动删除
+    if (m_dlService) {
+        m_dlService->stop();
     }
     // 删除结果对话框
     if (m_resultDialog) {
@@ -383,7 +383,7 @@ void TaskController::updateParameterPanel(Models::CVTask task)
         }
         containerLayout->addWidget(m_envServiceWidget);
 
-        // 更新模型列表
+        // 更新模型列表（如果服务已运行，内部会自动尝试加载新模型）
         m_envServiceWidget->updateModelList(task);
 
         // 更新服务状态显示
@@ -400,7 +400,7 @@ void TaskController::updateParameterPanel(Models::CVTask task)
         connectParameterPanelSignals();
 
         // 如果模型已加载，启用执行按钮
-        if (isAITask(task) && m_yoloService && m_yoloService->isModelLoaded()) {
+        if (isAITask(task) && m_dlService && m_dlService->isModelLoaded()) {
             enableRunButtons(true);
         }
     }
@@ -428,52 +428,52 @@ void TaskController::clearParameterPanel()
     }
 }
 
-bool TaskController::startYOLOService()
+bool TaskController::startDLService()
 {
-    if (!m_yoloService) {
-        emit logMessage("YOLO 服务未初始化");
+    if (!m_dlService) {
+        emit logMessage("服务未初始化");
         return false;
     }
 
-    if (m_yoloService->isRunning()) {
-        emit logMessage("YOLO 服务已在运行中");
+    if (m_dlService->isRunning()) {
+        emit logMessage("服务已在运行中");
         return true;
     }
 
-    emit logMessage("正在启动 YOLO 服务...");
-    bool success = m_yoloService->start();
+    emit logMessage("正在启动服务...");
+    bool success = m_dlService->start();
 
     if (success) {
-        emit logMessage("YOLO 服务启动成功");
+        emit logMessage("服务启动成功");
     } else {
-        emit logMessage("YOLO 服务启动失败");
+        emit logMessage("服务启动失败");
     }
 
     return success;
 }
 
-void TaskController::stopYOLOService()
+void TaskController::stopDLService()
 {
-    if (m_yoloService) {
-        m_yoloService->stop();
-        emit logMessage("YOLO 服务已停止");
+    if (m_dlService) {
+        m_dlService->stop();
+        emit logMessage("服务已停止");
     }
 }
 
-bool TaskController::loadYOLOModel(const QString &modelPath, const QString &labelsPath)
+bool TaskController::loadDLModel(const QString &modelPath, const QString &labelsPath)
 {
-    if (!m_yoloService) {
-        emit logMessage("YOLO 服务未初始化");
+    if (!m_dlService) {
+        emit logMessage("服务未初始化");
         return false;
     }
 
-    if (!m_yoloService->isRunning()) {
-        emit logMessage("YOLO 服务未运行，请先启动服务");
+    if (!m_dlService->isRunning()) {
+        emit logMessage("服务未运行，请先启动服务");
         return false;
     }
 
     emit logMessage(QString("正在加载模型: %1").arg(modelPath));
-    bool success = m_yoloService->loadModel(modelPath, labelsPath);
+    bool success = m_dlService->loadModel(modelPath, labelsPath);
 
     return success;
 }
@@ -481,13 +481,13 @@ bool TaskController::loadYOLOModel(const QString &modelPath, const QString &labe
 void TaskController::runDetection(const QString &imagePath, float confThreshold,
                                    float iouThreshold, int imageSize)
 {
-    if (!m_yoloService) {
-        emit logMessage("YOLO 服务未初始化");
+    if (!m_dlService) {
+        emit logMessage("服务未初始化");
         return;
     }
 
-    if (!m_yoloService->isRunning()) {
-        emit logMessage("YOLO 服务未运行，请先启动服务");
+    if (!m_dlService->isRunning()) {
+        emit logMessage("服务未运行，请先启动服务");
         return;
     }
 
@@ -497,7 +497,7 @@ void TaskController::runDetection(const QString &imagePath, float confThreshold,
     emit logMessage(QString("执行目标检测: %1").arg(imagePath));
 
     // 同步调用检测（实际应用中可以考虑异步）
-    Utils::YOLODetectionResult result = m_yoloService->detect(
+    Utils::DetectionResult result = m_dlService->detect(
         imagePath, confThreshold, iouThreshold, imageSize);
 
     // 注意：信号 detectionCompleted 会在 detect() 内部发射，
@@ -507,13 +507,13 @@ void TaskController::runDetection(const QString &imagePath, float confThreshold,
 void TaskController::runSegmentation(const QString &imagePath, float confThreshold,
                                       float iouThreshold, int imageSize)
 {
-    if (!m_yoloService) {
-        emit logMessage("YOLO 服务未初始化");
+    if (!m_dlService) {
+        emit logMessage("服务未初始化");
         return;
     }
 
-    if (!m_yoloService->isRunning()) {
-        emit logMessage("YOLO 服务未运行，请先启动服务");
+    if (!m_dlService->isRunning()) {
+        emit logMessage("服务未运行，请先启动服务");
         return;
     }
 
@@ -523,7 +523,7 @@ void TaskController::runSegmentation(const QString &imagePath, float confThresho
     emit logMessage(QString("执行实例分割: %1").arg(imagePath));
 
     // 同步调用分割
-    Utils::YOLODetectionResult result = m_yoloService->segment(
+    Utils::DetectionResult result = m_dlService->segment(
         imagePath, confThreshold, iouThreshold, imageSize);
 
     // 注意：信号 detectionCompleted 会在 segment() 内部发射，
@@ -778,7 +778,7 @@ void TaskController::connectParameterPanelSignals()
     }
 }
 
-void TaskController::onDetectionCompleted(const Utils::YOLODetectionResult &result)
+void TaskController::onDetectionCompleted(const Utils::DetectionResult &result)
 {
     qDebug() << "onDetectionCompleted called, success:" << result.success
              << "detections:" << result.detections.size();
@@ -792,7 +792,7 @@ void TaskController::onDetectionCompleted(const Utils::YOLODetectionResult &resu
     }
 }
 
-void TaskController::showResultDialog(const Utils::YOLODetectionResult &result)
+void TaskController::showResultDialog(const Utils::DetectionResult &result)
 {
     qDebug() << "showResultDialog called";
 
@@ -969,20 +969,20 @@ void TaskController::runEdgeDetection(const QString &imagePath, int method,
 
 void TaskController::runClassification(const QString &imagePath, int topK)
 {
-    if (!m_yoloService) {
-        emit logMessage("YOLO 服务未初始化");
+    if (!m_dlService) {
+        emit logMessage("服务未初始化");
         return;
     }
 
-    if (!m_yoloService->isRunning()) {
-        emit logMessage("YOLO 服务未运行，请先启动服务");
+    if (!m_dlService->isRunning()) {
+        emit logMessage("服务未运行，请先启动服务");
         return;
     }
 
     emit logMessage(QString("执行图像分类"));
 
     // 同步调用分类
-    Utils::YOLOClassificationResult result = m_yoloService->classify(imagePath, topK);
+    Utils::ClassificationResultList result = m_dlService->classify(imagePath, topK);
 
     if (result.success) {
         // 显示分类结果
@@ -1016,20 +1016,20 @@ void TaskController::runClassification(const QString &imagePath, int topK)
 void TaskController::runKeypointDetection(const QString &imagePath, float confThreshold,
                                            float iouThreshold, int imageSize)
 {
-    if (!m_yoloService) {
-        emit logMessage("YOLO 服务未初始化");
+    if (!m_dlService) {
+        emit logMessage("服务未初始化");
         return;
     }
 
-    if (!m_yoloService->isRunning()) {
-        emit logMessage("YOLO 服务未运行，请先启动服务");
+    if (!m_dlService->isRunning()) {
+        emit logMessage("服务未运行，请先启动服务");
         return;
     }
 
     emit logMessage(QString("执行关键点检测"));
 
     // 同步调用关键点检测
-    Utils::YOLOKeypointResult result = m_yoloService->keypoint(imagePath, confThreshold, iouThreshold, imageSize);
+    Utils::KeypointResult result = m_dlService->keypoint(imagePath, confThreshold, iouThreshold, imageSize);
 
     if (result.success) {
         // 显示关键点检测结果

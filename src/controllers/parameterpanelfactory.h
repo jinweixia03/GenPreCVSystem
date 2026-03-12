@@ -4,7 +4,7 @@
 #include <QWidget>
 #include <QString>
 
-#include "../models/tasktypes.h"
+#include "tasktypes.h"
 
 namespace GenPreCVSystem {
 namespace Controllers {

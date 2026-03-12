@@ -64,6 +64,20 @@ try:
 except ImportError:
     HAS_TORCH = False
 
+# 尝试导入 torchvision NMS
+try:
+    from torchvision.ops import nms as torchvision_nms
+    HAS_TORCHVISION_NMS = True
+except ImportError:
+    HAS_TORCHVISION_NMS = False
+
+# 尝试导入 OpenCV NMS
+try:
+    import cv2
+    HAS_CV2 = True
+except ImportError:
+    HAS_CV2 = False
+
 
 class DLService(BaseService, ModelServiceMixin, ImageServiceMixin):
     """深度学习推理服务"""
@@ -97,11 +111,83 @@ class DLService(BaseService, ModelServiceMixin, ImageServiceMixin):
         return {
             "has_ultralytics": HAS_ULTRALYTICS,
             "has_torch": HAS_TORCH,
+            "has_torchvision_nms": HAS_TORCHVISION_NMS,
+            "has_cv2": HAS_CV2,
             "device": device,
             "default_conf": self.DEFAULT_CONF_THRESHOLD,
             "default_iou": self.DEFAULT_IOU_THRESHOLD,
             "default_image_size": self.DEFAULT_IMAGE_SIZE
         }
+
+    def apply_nms(self, detections: list, iou_threshold: float) -> list:
+        """
+        应用非极大值抑制 (NMS) 后处理
+
+        作为保险措施：即使模型不是标准 YOLO 格式或内部 NMS 失效，
+        也能确保正确应用 IOU 阈值去除重叠框。
+
+        Args:
+            detections: 检测结果列表，每个元素为 dict(x, y, width, height, confidence, class_id, ...)
+            iou_threshold: IOU 阈值
+
+        Returns:
+            经过 NMS 过滤后的检测结果列表
+        """
+        if not detections or len(detections) <= 1:
+            return detections
+
+        # 如果 torchvision NMS 可用，优先使用
+        if HAS_TORCHVISION_NMS and HAS_TORCH:
+            try:
+                # 转换为 tensor 格式 [x1, y1, x2, y2, score]
+                boxes = []
+                scores = []
+                for det in detections:
+                    x1 = det["x"]
+                    y1 = det["y"]
+                    x2 = det["x"] + det["width"]
+                    y2 = det["y"] + det["height"]
+                    boxes.append([x1, y1, x2, y2])
+                    scores.append(det["confidence"])
+
+                boxes_tensor = torch.tensor(boxes, dtype=torch.float32)
+                scores_tensor = torch.tensor(scores, dtype=torch.float32)
+
+                # 应用 NMS
+                keep_indices = torchvision_nms(boxes_tensor, scores_tensor, iou_threshold)
+
+                # 返回保留的检测结果
+                return [detections[i] for i in keep_indices.tolist()]
+            except Exception as e:
+                print(f"警告: torchvision NMS 失败: {e}，将使用备选方案", file=sys.stderr)
+
+        # 如果 OpenCV NMS 可用，使用 OpenCV 实现
+        if HAS_CV2:
+            try:
+                boxes = []
+                scores = []
+                for det in detections:
+                    x = det["x"]
+                    y = det["y"]
+                    w = det["width"]
+                    h = det["height"]
+                    boxes.append([x, y, w, h])
+                    scores.append(det["confidence"])
+
+                # OpenCV NMS
+                indices = cv2.dnn.NMSBoxes(boxes, scores, score_threshold=0.0, nms_threshold=iou_threshold)
+
+                if len(indices) > 0:
+                    if isinstance(indices, tuple):
+                        indices = indices[0]
+                    indices = indices.flatten().tolist()
+                    return [detections[i] for i in indices]
+                return []
+            except Exception as e:
+                print(f"警告: OpenCV NMS 失败: {e}", file=sys.stderr)
+
+        # 如果都不可用，返回原始结果（依赖模型内部 NMS）
+        return detections
 
     def handle_command(self, command: str, request: Dict[str, Any]) -> Dict[str, Any]:
         """处理命令"""
@@ -220,11 +306,22 @@ class DLService(BaseService, ModelServiceMixin, ImageServiceMixin):
                             "label": self.class_names[cls_id] if cls_id < len(self.class_names) else f"class_{cls_id}"
                         })
 
+            # 应用 NMS 后处理（保险措施）
+            original_count = len(detections)
+            detections = self.apply_nms(detections, iou_threshold)
+            filtered_count = len(detections)
+
+            # 记录 NMS 效果
+            if filtered_count < original_count:
+                print(f"NMS 过滤: {original_count} -> {filtered_count} (IOU={iou_threshold})", file=sys.stderr)
+
             return self.create_success_response(
                 message=f"检测完成，发现 {len(detections)} 个目标",
                 data={
                     "detections": detections,
-                    "count": len(detections)
+                    "count": len(detections),
+                    "nms_applied": filtered_count < original_count,
+                    "nms_filtered": original_count - filtered_count
                 }
             )
 
@@ -289,11 +386,22 @@ class DLService(BaseService, ModelServiceMixin, ImageServiceMixin):
                         instance["mask_polygon"] = mask_polygon
                         instances.append(instance)
 
+            # 应用 NMS 后处理（保险措施）
+            original_count = len(instances)
+            instances = self.apply_nms(instances, iou_threshold)
+            filtered_count = len(instances)
+
+            # 记录 NMS 效果
+            if filtered_count < original_count:
+                print(f"分割 NMS 过滤: {original_count} -> {filtered_count} (IOU={iou_threshold})", file=sys.stderr)
+
             return self.create_success_response(
                 message=f"分割完成，发现 {len(instances)} 个实例",
                 data={
                     "detections": instances,
-                    "count": len(instances)
+                    "count": len(instances),
+                    "nms_applied": filtered_count < original_count,
+                    "nms_filtered": original_count - filtered_count
                 }
             )
 
@@ -406,11 +514,22 @@ class DLService(BaseService, ModelServiceMixin, ImageServiceMixin):
 
                         detections.append(detection)
 
+            # 应用 NMS 后处理（保险措施）
+            original_count = len(detections)
+            detections = self.apply_nms(detections, iou_threshold)
+            filtered_count = len(detections)
+
+            # 记录 NMS 效果
+            if filtered_count < original_count:
+                print(f"关键点检测 NMS 过滤: {original_count} -> {filtered_count} (IOU={iou_threshold})", file=sys.stderr)
+
             return self.create_success_response(
                 message=f"关键点检测完成，发现 {len(detections)} 个目标",
                 data={
                     "detections": detections,
-                    "count": len(detections)
+                    "count": len(detections),
+                    "nms_applied": filtered_count < original_count,
+                    "nms_filtered": original_count - filtered_count
                 }
             )
 

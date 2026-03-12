@@ -7,7 +7,7 @@
 #include <memory>
 #include <functional>
 
-#include "../models/tasktypes.h"
+#include "tasktypes.h"
 
 // 前向声明
 class QTabWidget;
@@ -18,12 +18,12 @@ namespace Views {
 class DetectionResultDialog;
 }
 namespace Utils {
-class YOLOService;
+class DLService;
 class ImageProcessService;
-struct YOLODetectionResult;
-struct YOLODetection;
-struct YOLOClassificationResult;
-struct YOLOKeypointResult;
+struct DetectionResult;
+struct Detection;
+struct ClassificationResultList;
+struct KeypointResult;
 struct ProcessResult;
 }
 namespace Controllers {
@@ -81,9 +81,9 @@ public:
     Models::CVTask currentTask() const { return m_currentTask; }
 
     /**
-     * @brief 获取 YOLO 服务
+     * @brief 获取 DL 服务
      */
-    Utils::YOLOService* yoloService() const { return m_yoloService; }
+    Utils::DLService* dlService() const { return m_dlService; }
 
     /**
      * @brief 设置是否显示结果对话框
@@ -126,7 +126,7 @@ signals:
     /**
      * @brief 检测完成信号
      */
-    void detectionCompleted(const Utils::YOLODetectionResult &result);
+    void detectionCompleted(const Utils::DetectionResult &result);
 
     /**
      * @brief 图像处理完成信号
@@ -135,19 +135,19 @@ signals:
 
 public slots:
     /**
-     * @brief 启动 YOLO 服务
+     * @brief 启动 DL 服务
      */
-    bool startYOLOService();
+    bool startDLService();
 
     /**
-     * @brief 停止 YOLO 服务
+     * @brief 停止 DL 服务
      */
-    void stopYOLOService();
+    void stopDLService();
 
     /**
-     * @brief 加载 YOLO 模型
+     * @brief 加载 DL 模型
      */
-    bool loadYOLOModel(const QString &modelPath, const QString &labelsPath = QString());
+    bool loadDLModel(const QString &modelPath, const QString &labelsPath = QString());
 
     /**
      * @brief 设置当前图像路径（由 MainWindow 调用）
@@ -203,7 +203,7 @@ private slots:
     /**
      * @brief 处理检测结果并显示结果对话框
      */
-    void onDetectionCompleted(const Utils::YOLODetectionResult &result);
+    void onDetectionCompleted(const Utils::DetectionResult &result);
 
 private:
     void updateParameterPanel(Models::CVTask task);
@@ -215,15 +215,15 @@ private:
     QString getCurrentImagePath() const;
     QString getCurrentImageForInference();  // 获取用于推理的图像路径（可能是临时文件）
     void cleanupTempImage();  // 清理临时图像文件
-    void showResultDialog(const Utils::YOLODetectionResult &result);
+    void showResultDialog(const Utils::DetectionResult &result);
     bool isAITask(Models::CVTask task) const;
 
     QScrollArea *m_paramScrollArea;
     QActionGroup *m_taskActionGroup;
     Models::CVTask m_currentTask;
 
-    // YOLO 服务
-    Utils::YOLOService *m_yoloService;
+    // DL 服务
+    Utils::DLService *m_dlService;
 
     // 图像处理服务
     Utils::ImageProcessService *m_imageProcessService;

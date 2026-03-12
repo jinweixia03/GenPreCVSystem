@@ -132,5 +132,7 @@ CMakeUserPresets.json
 !/src/resources/models/README.md
 
 # Third-party libraries
-/third_party/libtorch/
-/third_party/*.zip
+/third_part/
+
+# Data directory
+/data/

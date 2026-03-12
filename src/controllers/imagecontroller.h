@@ -4,8 +4,8 @@
 #include <QObject>
 #include <QPixmap>
 
-#include "../models/undostack.h"
-#include "../utils/imageprocessor.h"
+#include "undostack.h"
+#include "imageprocessor.h"
 
 namespace GenPreCVSystem {
 namespace Controllers {

@@ -7,9 +7,9 @@
 #include <QHash>
 #include <QTabWidget>
 
-#include "../models/tabdata.h"
-#include "../models/undostack.h"
-#include "../views/imageview.h"
+#include "tabdata.h"
+#include "undostack.h"
+#include "imageview.h"
 
 namespace GenPreCVSystem {
 namespace Controllers {

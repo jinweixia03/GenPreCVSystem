@@ -13,7 +13,7 @@
 #include <QPushButton>
 #include <QFileInfo>
 
-#include "../utils/clipboardhelper.h"
+#include "clipboardhelper.h"
 
 namespace GenPreCVSystem {
 namespace Controllers {

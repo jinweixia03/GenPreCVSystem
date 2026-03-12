@@ -6,7 +6,7 @@
 #include <QPixmap>
 #include <QWidget>
 
-#include "../utils/fileutils.h"
+#include "fileutils.h"
 
 namespace GenPreCVSystem {
 namespace Controllers {

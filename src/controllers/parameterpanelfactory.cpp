@@ -27,6 +27,10 @@ QWidget* ParameterPanelFactory::createParameterPanel(Models::CVTask task)
             return createSemanticSegmentationParams();
         case Models::CVTask::KeyPointDetection:
             return createKeyPointDetectionParams();
+        case Models::CVTask::RoadDamageDetection:
+            return createRoadDamageDetectionParams();
+        case Models::CVTask::ManholeCoverDamageDetection:
+            return createManholeCoverDamageDetectionParams();
         case Models::CVTask::ImageEnhancement:
             return createImageEnhancementParams();
         case Models::CVTask::ImageDenoising:
@@ -247,6 +251,170 @@ QWidget* ParameterPanelFactory::createKeyPointDetectionParams()
     // 执行按钮
     QPushButton *runBtn = new QPushButton("执行关键点检测", widget);
     runBtn->setObjectName("btnRunKeyPoint");
+    runBtn->setEnabled(false);
+    runBtn->setStyleSheet("QPushButton:disabled { background-color: #cccccc; color: #666666; }");
+    layout->addWidget(runBtn);
+
+    layout->addStretch();
+    return widget;
+}
+
+QWidget* ParameterPanelFactory::createRoadDamageDetectionParams()
+{
+    QWidget *widget = new QWidget();
+    widget->setObjectName("RoadDamageDetectionParams");
+    QVBoxLayout *layout = new QVBoxLayout(widget);
+    layout->setContentsMargins(10, 10, 10, 10);
+    layout->setSpacing(10);
+
+    // 推理参数
+    QGroupBox *inferGroup = new QGroupBox("病害检测参数", widget);
+    QFormLayout *inferLayout = new QFormLayout(inferGroup);
+
+    QDoubleSpinBox *confSpinBox = new QDoubleSpinBox(widget);
+    confSpinBox->setObjectName("spinConfThreshold");
+    confSpinBox->setRange(0.0, 1.0);
+    confSpinBox->setDecimals(2);
+    confSpinBox->setSingleStep(0.05);
+    confSpinBox->setValue(0.25);
+    inferLayout->addRow("置信度阈值:", confSpinBox);
+
+    QDoubleSpinBox *iouSpinBox = new QDoubleSpinBox(widget);
+    iouSpinBox->setObjectName("spinIOUThreshold");
+    iouSpinBox->setRange(0.0, 1.0);
+    iouSpinBox->setDecimals(2);
+    iouSpinBox->setSingleStep(0.05);
+    iouSpinBox->setValue(0.45);
+    inferLayout->addRow("IOU阈值:", iouSpinBox);
+
+    QSpinBox *imageSizeSpinBox = new QSpinBox(widget);
+    imageSizeSpinBox->setObjectName("spinImageSize");
+    imageSizeSpinBox->setRange(320, 1280);
+    imageSizeSpinBox->setSingleStep(32);
+    imageSizeSpinBox->setValue(640);
+    inferLayout->addRow("输入尺寸:", imageSizeSpinBox);
+
+    // 显示选项
+    QCheckBox *showLabelsCheck = new QCheckBox("显示标签", widget);
+    showLabelsCheck->setObjectName("chkShowLabels");
+    showLabelsCheck->setChecked(true);
+    inferLayout->addRow("显示选项:", showLabelsCheck);
+
+    layout->addWidget(inferGroup);
+
+    // 类别颜色示意
+    QGroupBox *legendGroup = new QGroupBox("病害类别", widget);
+    QVBoxLayout *legendLayout = new QVBoxLayout(legendGroup);
+    legendLayout->setSpacing(5);
+
+    // 定义道路病害类别和颜色
+    struct RoadDamageClass {
+        QString color;   // 颜色值如 #FF4444
+        QString symbol;  // 符号如 ●
+        QString label;   // 标签如 D00 - 纵向裂缝
+    };
+    RoadDamageClass roadClasses[] = {
+        {"#FF4444", "●", "D00 - 纵向裂缝"},
+        {"#4444FF", "●", "D10 - 横向裂缝"},
+        {"#FFCC00", "●", "D20 - 网状裂缝"},
+        {"#AA44FF", "●", "D40 - 坑槽"}
+    };
+
+    for (const auto &cls : roadClasses) {
+        QLabel *label = new QLabel(widget);
+        label->setText(QString("<span style='color:%1; font-weight:bold;'>%2</span> %3")
+                       .arg(cls.color, cls.symbol, cls.label));
+        label->setStyleSheet("font-size: 12px;");
+        legendLayout->addWidget(label);
+    }
+
+    layout->addWidget(legendGroup);
+
+    // 执行按钮
+    QPushButton *runBtn = new QPushButton("执行病害检测", widget);
+    runBtn->setObjectName("btnRunRoadDamage");
+    runBtn->setEnabled(false);
+    runBtn->setStyleSheet("QPushButton:disabled { background-color: #cccccc; color: #666666; }");
+    layout->addWidget(runBtn);
+
+    layout->addStretch();
+    return widget;
+}
+
+QWidget* ParameterPanelFactory::createManholeCoverDamageDetectionParams()
+{
+    QWidget *widget = new QWidget();
+    widget->setObjectName("ManholeCoverDamageDetectionParams");
+    QVBoxLayout *layout = new QVBoxLayout(widget);
+    layout->setContentsMargins(10, 10, 10, 10);
+    layout->setSpacing(10);
+
+    // 推理参数
+    QGroupBox *inferGroup = new QGroupBox("井盖检测参数", widget);
+    QFormLayout *inferLayout = new QFormLayout(inferGroup);
+
+    QDoubleSpinBox *confSpinBox = new QDoubleSpinBox(widget);
+    confSpinBox->setObjectName("spinConfThreshold");
+    confSpinBox->setRange(0.0, 1.0);
+    confSpinBox->setDecimals(2);
+    confSpinBox->setSingleStep(0.05);
+    confSpinBox->setValue(0.25);
+    inferLayout->addRow("置信度阈值:", confSpinBox);
+
+    QDoubleSpinBox *iouSpinBox = new QDoubleSpinBox(widget);
+    iouSpinBox->setObjectName("spinIOUThreshold");
+    iouSpinBox->setRange(0.0, 1.0);
+    iouSpinBox->setDecimals(2);
+    iouSpinBox->setSingleStep(0.05);
+    iouSpinBox->setValue(0.45);
+    inferLayout->addRow("IOU阈值:", iouSpinBox);
+
+    QSpinBox *imageSizeSpinBox = new QSpinBox(widget);
+    imageSizeSpinBox->setObjectName("spinImageSize");
+    imageSizeSpinBox->setRange(320, 1280);
+    imageSizeSpinBox->setSingleStep(32);
+    imageSizeSpinBox->setValue(640);
+    inferLayout->addRow("输入尺寸:", imageSizeSpinBox);
+
+    // 显示选项
+    QCheckBox *showLabelsCheck = new QCheckBox("显示标签", widget);
+    showLabelsCheck->setObjectName("chkShowLabels");
+    showLabelsCheck->setChecked(true);
+    inferLayout->addRow("显示选项:", showLabelsCheck);
+
+    layout->addWidget(inferGroup);
+
+    // 类别颜色示意
+    QGroupBox *legendGroup = new QGroupBox("井盖状态类别", widget);
+    QVBoxLayout *legendLayout = new QVBoxLayout(legendGroup);
+    legendLayout->setSpacing(5);
+
+    // 定义井盖病害类别和颜色
+    struct ManholeCoverClass {
+        QString color;   // 颜色值如 #44AA44
+        QString symbol;  // 符号如 ●
+        QString label;   // 标签如 井盖 (Manhole)
+    };
+    ManholeCoverClass coverClasses[] = {
+        {"#44AA44", "●", "井盖 (Manhole)"},
+        {"#FF8800", "●", "损坏 (Damage)"},
+        {"#4444FF", "●", "缺失 (Missing)"},
+        {"#FF4444", "●", "打开 (Open)"}
+    };
+
+    for (const auto &cls : coverClasses) {
+        QLabel *label = new QLabel(widget);
+        label->setText(QString("<span style='color:%1; font-weight:bold;'>%2</span> %3")
+                       .arg(cls.color, cls.symbol, cls.label));
+        label->setStyleSheet("font-size: 12px;");
+        legendLayout->addWidget(label);
+    }
+
+    layout->addWidget(legendGroup);
+
+    // 执行按钮
+    QPushButton *runBtn = new QPushButton("执行井盖检测", widget);
+    runBtn->setObjectName("btnRunManholeCover");
     runBtn->setEnabled(false);
     runBtn->setStyleSheet("QPushButton:disabled { background-color: #cccccc; color: #666666; }");
     layout->addWidget(runBtn);

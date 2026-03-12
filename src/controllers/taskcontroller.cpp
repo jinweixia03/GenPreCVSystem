@@ -134,7 +134,9 @@ void TaskController::enableRunButtons(bool enabled)
         "btnRunDetection",
         "btnRunSegmentation",
         "btnRunClassification",
-        "btnRunKeyPoint"
+        "btnRunKeyPoint",
+        "btnRunRoadDamage",
+        "btnRunManholeCover"
     };
 
     for (const QString &btnName : runButtonNames) {
@@ -157,6 +159,8 @@ bool TaskController::isAITask(Models::CVTask task) const
         case Models::CVTask::ObjectDetection:
         case Models::CVTask::SemanticSegmentation:
         case Models::CVTask::KeyPointDetection:
+        case Models::CVTask::RoadDamageDetection:
+        case Models::CVTask::ManholeCoverDamageDetection:
             return true;
         default:
             return false;
@@ -166,48 +170,61 @@ bool TaskController::isAITask(Models::CVTask task) const
 QString TaskController::getModelDirectory(Models::CVTask task)
 {
     QString appDir = QCoreApplication::applicationDirPath();
-    QDir dir(appDir);
 
-    // 尝试找到 resources/models 目录
+    // 根据任务类型确定子目录名
+    QString subDir;
+    switch (task) {
+        case Models::CVTask::ObjectDetection:
+            subDir = "detection";
+            break;
+        case Models::CVTask::SemanticSegmentation:
+            subDir = "segmentation";
+            break;
+        case Models::CVTask::ImageClassification:
+            subDir = "classification";
+            break;
+        case Models::CVTask::KeyPointDetection:
+            subDir = "keypoint";
+            break;
+        case Models::CVTask::RoadDamageDetection:
+            subDir = "roaddamagedetection";
+            break;
+        case Models::CVTask::ManholeCoverDamageDetection:
+            subDir = "manholecoverdamagedetection";
+            break;
+        default:
+            subDir = "detection";
+            break;
+    }
+
+    // 优先使用构建目录下的 models（CMake 复制目标）
+    QString buildModelPath = appDir + "/models/" + subDir;
+    if (QDir(buildModelPath).exists()) {
+        return buildModelPath;
+    }
+
+    // 开发环境：尝试源代码目录
+    QDir dir(appDir);
     QStringList possiblePaths = {
-        appDir + "/../src/resources/models",
-        appDir + "/src/resources/models",
-        appDir + "/../../src/resources/models",
-        appDir + "/resources/models",
+        appDir + "/../src/resources/models/" + subDir,
+        appDir + "/src/resources/models/" + subDir,
+        appDir + "/../../src/resources/models/" + subDir,
     };
 
     // 尝试从构建目录找到源目录
     if (dir.cdUp()) {
-        possiblePaths.prepend(dir.absolutePath() + "/src/resources/models");
+        possiblePaths.prepend(dir.absolutePath() + "/src/resources/models/" + subDir);
     }
 
-    QString basePath;
     for (const QString &path : possiblePaths) {
         QString normalized = QDir::cleanPath(path);
         if (QDir(normalized).exists()) {
-            basePath = normalized;
-            break;
+            return normalized;
         }
     }
 
-    if (basePath.isEmpty()) {
-        // 如果没找到，使用默认路径
-        basePath = QDir::cleanPath(appDir + "/../src/resources/models");
-    }
-
-    // 根据任务类型返回子目录
-    switch (task) {
-        case Models::CVTask::ObjectDetection:
-            return basePath + "/detection";
-        case Models::CVTask::SemanticSegmentation:
-            return basePath + "/segmentation";
-        case Models::CVTask::ImageClassification:
-            return basePath + "/classification";
-        case Models::CVTask::KeyPointDetection:
-            return basePath + "/keypoint";
-        default:
-            return basePath;
-    }
+    // 返回默认路径（即使不存在，后续会提示）
+    return buildModelPath;
 }
 
 QStringList TaskController::scanAvailableModels(Models::CVTask task)
@@ -695,6 +712,86 @@ void TaskController::connectParameterPanelSignals()
         });
     }
 
+    // ========== 道路病害检测按钮 ==========
+    QPushButton *runRoadDamageBtn = panel->findChild<QPushButton *>("btnRunRoadDamage");
+    if (runRoadDamageBtn) {
+        connect(runRoadDamageBtn, &QPushButton::clicked, this, [this, panel, runRoadDamageBtn]() {
+            // 获取当前显示的图像用于推理（可能是处理后的图像）
+            QString imagePath = getCurrentImageForInference();
+
+            if (imagePath.isEmpty()) {
+                emit logMessage("请先打开一张图像");
+                return;
+            }
+
+            // 禁用按钮防止重复点击
+            runRoadDamageBtn->setEnabled(false);
+            runRoadDamageBtn->setText("检测中...");
+
+            // 获取参数
+            QDoubleSpinBox *confSpinBox = panel->findChild<QDoubleSpinBox *>("spinConfThreshold");
+            QDoubleSpinBox *iouSpinBox = panel->findChild<QDoubleSpinBox *>("spinIOUThreshold");
+            QSpinBox *sizeSpinBox = panel->findChild<QSpinBox *>("spinImageSize");
+            QCheckBox *showLabelsCheck = panel->findChild<QCheckBox *>("chkShowLabels");
+
+            float confThreshold = confSpinBox ? static_cast<float>(confSpinBox->value()) : 0.25f;
+            float iouThreshold = iouSpinBox ? static_cast<float>(iouSpinBox->value()) : 0.45f;
+            int imageSize = sizeSpinBox ? sizeSpinBox->value() : 640;
+
+            // 保存显示设置
+            m_showLabels = showLabelsCheck ? showLabelsCheck->isChecked() : true;
+
+            runRoadDamageDetection(imagePath, confThreshold, iouThreshold, imageSize);
+
+            // 清理临时文件
+            cleanupTempImage();
+
+            // 恢复按钮状态
+            runRoadDamageBtn->setEnabled(true);
+            runRoadDamageBtn->setText("执行病害检测");
+        });
+    }
+
+    // ========== 井盖病害检测按钮 ==========
+    QPushButton *runManholeCoverBtn = panel->findChild<QPushButton *>("btnRunManholeCover");
+    if (runManholeCoverBtn) {
+        connect(runManholeCoverBtn, &QPushButton::clicked, this, [this, panel, runManholeCoverBtn]() {
+            // 获取当前显示的图像用于推理（可能是处理后的图像）
+            QString imagePath = getCurrentImageForInference();
+
+            if (imagePath.isEmpty()) {
+                emit logMessage("请先打开一张图像");
+                return;
+            }
+
+            // 禁用按钮防止重复点击
+            runManholeCoverBtn->setEnabled(false);
+            runManholeCoverBtn->setText("检测中...");
+
+            // 获取参数
+            QDoubleSpinBox *confSpinBox = panel->findChild<QDoubleSpinBox *>("spinConfThreshold");
+            QDoubleSpinBox *iouSpinBox = panel->findChild<QDoubleSpinBox *>("spinIOUThreshold");
+            QSpinBox *sizeSpinBox = panel->findChild<QSpinBox *>("spinImageSize");
+            QCheckBox *showLabelsCheck = panel->findChild<QCheckBox *>("chkShowLabels");
+
+            float confThreshold = confSpinBox ? static_cast<float>(confSpinBox->value()) : 0.25f;
+            float iouThreshold = iouSpinBox ? static_cast<float>(iouSpinBox->value()) : 0.45f;
+            int imageSize = sizeSpinBox ? sizeSpinBox->value() : 640;
+
+            // 保存显示设置
+            m_showLabels = showLabelsCheck ? showLabelsCheck->isChecked() : true;
+
+            runManholeCoverDamageDetection(imagePath, confThreshold, iouThreshold, imageSize);
+
+            // 清理临时文件
+            cleanupTempImage();
+
+            // 恢复按钮状态
+            runManholeCoverBtn->setEnabled(true);
+            runManholeCoverBtn->setText("执行井盖检测");
+        });
+    }
+
     // ========== 图像增强按钮 ==========
     QPushButton *runEnhanceBtn = panel->findChild<QPushButton *>("btnRunEnhancement");
     if (runEnhanceBtn) {
@@ -1058,6 +1155,58 @@ void TaskController::runKeypointDetection(const QString &imagePath, float confTh
     } else {
         emit logMessage(tr("关键点检测失败: %1").arg(result.message));
     }
+}
+
+void TaskController::runRoadDamageDetection(const QString &imagePath, float confThreshold,
+                                             float iouThreshold, int imageSize)
+{
+    if (!m_dlService) {
+        emit logMessage("服务未初始化");
+        return;
+    }
+
+    if (!m_dlService->isRunning()) {
+        emit logMessage("服务未运行，请先启动服务");
+        return;
+    }
+
+    // 保存当前图像路径，用于显示结果
+    m_currentImagePath = imagePath;
+
+    emit logMessage(QString("执行道路病害检测: %1").arg(imagePath));
+
+    // 同步调用检测（使用 detect 方法，与目标检测相同）
+    Utils::DetectionResult result = m_dlService->detect(
+        imagePath, confThreshold, iouThreshold, imageSize);
+
+    // 注意：信号 detectionCompleted 会在 detect() 内部发射，
+    // 触发 onDetectionCompleted() 显示结果对话框
+}
+
+void TaskController::runManholeCoverDamageDetection(const QString &imagePath, float confThreshold,
+                                                     float iouThreshold, int imageSize)
+{
+    if (!m_dlService) {
+        emit logMessage("服务未初始化");
+        return;
+    }
+
+    if (!m_dlService->isRunning()) {
+        emit logMessage("服务未运行，请先启动服务");
+        return;
+    }
+
+    // 保存当前图像路径，用于显示结果
+    m_currentImagePath = imagePath;
+
+    emit logMessage(QString("执行井盖病害检测: %1").arg(imagePath));
+
+    // 同步调用检测（使用 detect 方法，与目标检测相同）
+    Utils::DetectionResult result = m_dlService->detect(
+        imagePath, confThreshold, iouThreshold, imageSize);
+
+    // 注意：信号 detectionCompleted 会在 detect() 内部发射，
+    // 触发 onDetectionCompleted() 显示结果对话框
 }
 
 } // namespace Controllers

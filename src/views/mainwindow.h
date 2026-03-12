@@ -45,7 +45,9 @@ enum class CVTask {
     ObjectDetection,          ///< 目标检测
     SemanticSegmentation,     ///< 语义分割
     KeyPointDetection,        ///< 关键点检测
-    ImageEnhancement,         ///< 图像增强
+    RoadDamageDetection,       ///< 道路病害检测
+    ManholeCoverDamageDetection, ///< 井盖病害检测
+    ImageEnhancement,          ///< 图像增强
     ImageDenoising,           ///< 图像去噪
     EdgeDetection             ///< 边缘检测
 };
@@ -283,6 +285,8 @@ private slots:
     void on_actionTaskObjectDetection_triggered();
     void on_actionTaskSemanticSegmentation_triggered();
     void on_actionTaskKeyPointDetection_triggered();
+    void on_actionTaskRoadDamageDetection_triggered();
+    void on_actionTaskManholeCoverDamageDetection_triggered();
     void on_actionTaskImageEnhancement_triggered();
     void on_actionTaskImageDenoising_triggered();
     void on_actionTaskEdgeDetection_triggered();

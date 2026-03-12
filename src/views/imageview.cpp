@@ -232,8 +232,8 @@ void ImageView::setDetections(const QVector<DetectionOverlay> &detections, bool 
     for (int i = 0; i < detections.size(); ++i) {
         const DetectionOverlay &det = detections[i];
 
-        // 选择颜色
-        QColor color = det.color.isValid() ? det.color : colors[i % colors.size()];
+        // 选择颜色：优先使用传入的颜色，否则根据类别ID分配颜色
+        QColor color = det.color.isValid() ? det.color : colors[det.classId % colors.size()];
 
         // 创建边界框
         QGraphicsRectItem *rectItem = m_scene->addRect(
@@ -325,8 +325,8 @@ void ImageView::setSegmentationOverlays(const QVector<DetectionOverlay> &detecti
     for (int i = 0; i < detections.size(); ++i) {
         const DetectionOverlay &det = detections[i];
 
-        // 选择颜色
-        QColor color = det.color.isValid() ? det.color : colors[i % colors.size()];
+        // 选择颜色：优先使用传入的颜色，否则根据类别ID分配颜色
+        QColor color = det.color.isValid() ? det.color : colors[det.classId % colors.size()];
 
         // 绘制掩码多边形（如果有）
         if (!det.maskPolygon.isEmpty()) {

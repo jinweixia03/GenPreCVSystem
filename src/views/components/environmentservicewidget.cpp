@@ -772,6 +772,12 @@ void EnvironmentServiceWidget::updateModelList(Models::CVTask task)
         case Models::CVTask::KeyPointDetection:
             modelDir = basePath + "/keypoint";
             break;
+        case Models::CVTask::RoadDamageDetection:
+            modelDir = basePath + "/roaddamagedetection";
+            break;
+        case Models::CVTask::ManholeCoverDamageDetection:
+            modelDir = basePath + "/manholecoverdamagedetection";
+            break;
         default:
             modelDir = basePath;
             break;
@@ -877,6 +883,12 @@ QString EnvironmentServiceWidget::findFirstAvailableModel(Models::CVTask task) c
             break;
         case Models::CVTask::KeyPointDetection:
             modelDir = basePath + "/keypoint";
+            break;
+        case Models::CVTask::RoadDamageDetection:
+            modelDir = basePath + "/roaddamagedetection";
+            break;
+        case Models::CVTask::ManholeCoverDamageDetection:
+            modelDir = basePath + "/manholecoverdamagedetection";
             break;
         default:
             modelDir = basePath;

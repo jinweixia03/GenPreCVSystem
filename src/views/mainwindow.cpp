@@ -1458,6 +1458,11 @@ void MainWindow::on_actionTaskManholeCoverDamageDetection_triggered()
     switchTask(CVTask::ManholeCoverDamageDetection);
 }
 
+void MainWindow::on_actionTaskRemoteSceneFewShotClassification_triggered()
+{
+    switchTask(CVTask::RemoteSceneFewShotClassification);
+}
+
 /**
  * @brief 图像增强
  */
@@ -2595,6 +2600,7 @@ void MainWindow::setupTaskMenus()
     ui->actionTaskKeyPointDetection->setData(QVariant::fromValue(static_cast<int>(CVTask::KeyPointDetection)));
     ui->actionTaskRoadDamageDetection->setData(QVariant::fromValue(static_cast<int>(CVTask::RoadDamageDetection)));
     ui->actionTaskManholeCoverDamageDetection->setData(QVariant::fromValue(static_cast<int>(CVTask::ManholeCoverDamageDetection)));
+    ui->actionTaskRemoteSceneFewShotClassification->setData(QVariant::fromValue(static_cast<int>(CVTask::RemoteSceneFewShotClassification)));
     ui->actionTaskImageEnhancement->setData(QVariant::fromValue(static_cast<int>(CVTask::ImageEnhancement)));
     ui->actionTaskImageDenoising->setData(QVariant::fromValue(static_cast<int>(CVTask::ImageDenoising)));
     ui->actionTaskEdgeDetection->setData(QVariant::fromValue(static_cast<int>(CVTask::EdgeDetection)));
@@ -2606,6 +2612,7 @@ void MainWindow::setupTaskMenus()
     taskActionGroup->addAction(ui->actionTaskKeyPointDetection);
     taskActionGroup->addAction(ui->actionTaskRoadDamageDetection);
     taskActionGroup->addAction(ui->actionTaskManholeCoverDamageDetection);
+    taskActionGroup->addAction(ui->actionTaskRemoteSceneFewShotClassification);
     taskActionGroup->addAction(ui->actionTaskImageEnhancement);
     taskActionGroup->addAction(ui->actionTaskImageDenoising);
     taskActionGroup->addAction(ui->actionTaskEdgeDetection);

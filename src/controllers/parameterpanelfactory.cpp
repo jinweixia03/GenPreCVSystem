@@ -31,6 +31,8 @@ QWidget* ParameterPanelFactory::createParameterPanel(Models::CVTask task)
             return createRoadDamageDetectionParams();
         case Models::CVTask::ManholeCoverDamageDetection:
             return createManholeCoverDamageDetectionParams();
+        case Models::CVTask::RemoteSceneFewShotClassification:
+            return createRemoteSceneFewShotClassificationParams();
         case Models::CVTask::ImageEnhancement:
             return createImageEnhancementParams();
         case Models::CVTask::ImageDenoising:
@@ -567,6 +569,89 @@ QWidget* ParameterPanelFactory::createImageDenoisingParams()
     QPushButton *runBtn = new QPushButton("执行去噪", widget);
     runBtn->setObjectName("btnRunDenoising");
     runBtn->setStyleSheet("QPushButton { background-color: #2196F3; color: white; font-weight: bold; padding: 8px; }");
+    layout->addWidget(runBtn);
+
+    layout->addStretch();
+    return widget;
+}
+
+QWidget* ParameterPanelFactory::createRemoteSceneFewShotClassificationParams()
+{
+    QWidget *widget = new QWidget();
+    widget->setObjectName("RemoteSceneFewShotClassificationParams");
+    QVBoxLayout *layout = new QVBoxLayout(widget);
+    layout->setContentsMargins(10, 10, 10, 10);
+    layout->setSpacing(10);
+
+    // 小样本学习参数
+    QGroupBox *fslGroup = new QGroupBox("小样本学习参数", widget);
+    QFormLayout *fslLayout = new QFormLayout(fslGroup);
+
+    // N-way: 每轮episode的类别数
+    QSpinBox *nWaySpinBox = new QSpinBox(widget);
+    nWaySpinBox->setObjectName("spinNWay");
+    nWaySpinBox->setRange(2, 20);
+    nWaySpinBox->setValue(5);
+    nWaySpinBox->setToolTip("每轮任务中的类别数量 (N-way)");
+    fslLayout->addRow("N-way (类别数):", nWaySpinBox);
+
+    // N-shot: 每类支持样本数
+    QSpinBox *nShotSpinBox = new QSpinBox(widget);
+    nShotSpinBox->setObjectName("spinNShot");
+    nShotSpinBox->setRange(1, 20);
+    nShotSpinBox->setValue(5);
+    nShotSpinBox->setToolTip("每个类别的支持样本数量 (N-shot)");
+    fslLayout->addRow("N-shot (样本数):", nShotSpinBox);
+
+    // N-query: 每类查询样本数
+    QSpinBox *nQuerySpinBox = new QSpinBox(widget);
+    nQuerySpinBox->setObjectName("spinNQuery");
+    nQuerySpinBox->setRange(1, 50);
+    nQuerySpinBox->setValue(15);
+    nQuerySpinBox->setToolTip("每个类别的查询样本数量 (N-query)");
+    fslLayout->addRow("N-query (查询数):", nQuerySpinBox);
+
+    // 输入图像尺寸
+    QSpinBox *imageSizeSpinBox = new QSpinBox(widget);
+    imageSizeSpinBox->setObjectName("spinImageSize");
+    imageSizeSpinBox->setRange(64, 224);
+    imageSizeSpinBox->setSingleStep(16);
+    imageSizeSpinBox->setValue(84);
+    imageSizeSpinBox->setToolTip("输入图像尺寸 (默认84x84)");
+    fslLayout->addRow("输入尺寸:", imageSizeSpinBox);
+
+    layout->addWidget(fslGroup);
+
+    // 简洁的任务说明
+    QGroupBox *infoGroup = new QGroupBox("任务简介", widget);
+    QVBoxLayout *infoLayout = new QVBoxLayout(infoGroup);
+    QLabel *infoLabel = new QLabel(widget);
+    infoLabel->setText(
+        "<p style='font-size: 11px; color: #666;'>"
+        "基于原型网络的小样本学习，通过 N-way-K-shot 方式对遥感影像进行场景分类。"
+        "支持 30 类遥感场景（MEET-FSL 数据集）。"
+        "</p>"
+    );
+    infoLabel->setWordWrap(true);
+    infoLayout->addWidget(infoLabel);
+
+    // 详细说明按钮
+    QPushButton *detailBtn = new QPushButton("📖 查看详细说明...", widget);
+    detailBtn->setObjectName("btnFSLDetailInfo");
+    detailBtn->setStyleSheet(
+        "QPushButton { background-color: transparent; color: #0066cc; border: 1px solid #0066cc; "
+        "padding: 4px 8px; font-size: 11px; }"
+        "QPushButton:hover { background-color: #0066cc; color: white; }"
+    );
+    infoLayout->addWidget(detailBtn);
+
+    layout->addWidget(infoGroup);
+
+    // 执行按钮
+    QPushButton *runBtn = new QPushButton("执行小样本分类", widget);
+    runBtn->setObjectName("btnRunFewShotClassification");
+    runBtn->setEnabled(false);
+    runBtn->setStyleSheet("QPushButton:disabled { background-color: #cccccc; color: #666666; }");
     layout->addWidget(runBtn);
 
     layout->addStretch();

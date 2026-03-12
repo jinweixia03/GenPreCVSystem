@@ -195,6 +195,12 @@ public slots:
                                          float iouThreshold = 0.45f, int imageSize = 640);
 
     /**
+     * @brief 执行遥感影像小样本分类
+     */
+    void runFewShotClassification(const QString &imagePath, int nWay = 5, int nShot = 5,
+                                   int nQuery = 15, int imageSize = 84);
+
+    /**
      * @brief 执行图像增强
      */
     void runImageEnhancement(const QString &imagePath, int brightness, int contrast,
@@ -228,6 +234,7 @@ private:
     QString getCurrentImageForInference();  // 获取用于推理的图像路径（可能是临时文件）
     void cleanupTempImage();  // 清理临时图像文件
     void showResultDialog(const Utils::DetectionResult &result);
+    void showFSLInfoDialog();  // 显示小样本分类详细说明对话框
     bool isAITask(Models::CVTask task) const;
 
     QScrollArea *m_paramScrollArea;

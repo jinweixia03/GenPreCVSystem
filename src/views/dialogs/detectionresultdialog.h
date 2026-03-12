@@ -54,6 +54,16 @@ public:
     void setClassificationResult(const QPixmap &pixmap, const Utils::ClassificationResultList &result);
 
     /**
+     * @brief 设置小样本分类结果
+     * @param pixmap 原始图像
+     * @param result 分类结果
+     * @param nWay N-way 类别数
+     * @param nShot N-shot 样本数
+     */
+    void setFewShotClassificationResult(const QPixmap &pixmap, const Utils::ClassificationResultList &result,
+                                        int nWay = 5, int nShot = 5);
+
+    /**
      * @brief 设置关键点检测结果
      * @param pixmap 原始图像
      * @param result 检测结果

@@ -58,6 +58,11 @@ public:
      */
     void updateRunButtonState(bool enabled);
 
+    /**
+     * @brief 尝试自动启动服务（public 接口，供外部调用）
+     */
+    void tryAutoStartService();
+
 signals:
     /**
      * @brief 日志消息信号
@@ -98,7 +103,6 @@ private:
     void connectSignals();
     void scanEnvironments();
     void populateEnvironmentCombo(const QVector<Utils::CachedEnvironment> &envs);
-    void tryAutoStartService();
     void onServiceStartedSuccessfully();
     void tryAutoLoadModel();
     void updateModelStatus();

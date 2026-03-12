@@ -29,6 +29,13 @@ struct CachedEnvironment : public PythonEnvironment {
     QDateTime cacheUpdatedAt;       // 缓存更新时间
     int validationTimeMs = 0;       // 验证耗时（毫秒）
 
+    // GPU 信息
+    bool cudaAvailable = false;     // CUDA 是否可用
+    int cudaDeviceCount = 0;        // CUDA 设备数量
+    QString cudaVersion;            // CUDA 版本
+    QString gpuName;                // GPU 名称
+    QString gpuMemory;              // GPU 显存信息
+
     CachedEnvironment() = default;
     explicit CachedEnvironment(const PythonEnvironment &env);
 
@@ -44,6 +51,18 @@ struct CachedEnvironment : public PythonEnvironment {
      * @return 是否需要验证
      */
     bool needsRevalidation() const;
+
+    /**
+     * @brief 获取 GPU 状态摘要
+     * @return GPU 状态字符串（如 "NVIDIA RTX 3060 (12GB)" 或 "CPU only"）
+     */
+    QString getGpuStatusString() const;
+
+    /**
+     * @brief 检查是否有可用的 GPU
+     * @return 是否有可用 GPU
+     */
+    bool hasGpu() const { return cudaAvailable && cudaDeviceCount > 0; }
 };
 
 /**

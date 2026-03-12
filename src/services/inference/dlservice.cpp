@@ -17,6 +17,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QFile>
+#include <QFileInfo>
 #include <QDir>
 #include <QDebug>
 #include <QElapsedTimer>
@@ -281,6 +282,77 @@ QVector<PythonEnvironment> DLService::scanEnvironments()
             scannedCount++;
         }
     }
+
+    // 5. 检测 conda base 环境
+    QStringList condaBasePaths = {
+        homeDir + "/miniconda3",
+        homeDir + "/anaconda3",
+        homeDir + "/Miniconda3",
+        homeDir + "/Anaconda3",
+        "C:/ProgramData/miniconda3",
+        "C:/ProgramData/anaconda3",
+        "C:/miniconda3",
+        "C:/anaconda3",
+    };
+
+    for (const QString &basePath : condaBasePaths) {
+        QString pythonPath;
+#ifdef Q_OS_WIN
+        pythonPath = basePath + "/python.exe";
+#else
+        pythonPath = basePath + "/bin/python";
+#endif
+        if (QFile::exists(pythonPath)) {
+            addEnvironment("base", pythonPath, "conda", false);
+        }
+    }
+
+    // 6. 扫描 venv 虚拟环境（常见位置）
+    QStringList venvSearchDirs = {
+        homeDir + "/.venvs",
+        homeDir + "/venvs",
+        homeDir + "/virtualenvs",
+        homeDir + "/Envs",
+    };
+
+    // 添加当前工作目录下的常见 venv 目录
+    QString currentDir = QDir::currentPath();
+    venvSearchDirs.append(currentDir + "/venv");
+    venvSearchDirs.append(currentDir + "/.venv");
+    venvSearchDirs.append(currentDir + "/env");
+
+    for (const QString &venvDir : venvSearchDirs) {
+        QString pythonPath;
+#ifdef Q_OS_WIN
+        pythonPath = venvDir + "/Scripts/python.exe";
+#else
+        pythonPath = venvDir + "/bin/python";
+#endif
+        if (QFile::exists(pythonPath)) {
+            QString venvName = QFileInfo(venvDir).fileName();
+            addEnvironment(venvName, pythonPath, "venv", false);
+        }
+    }
+
+    // 7. 扫描 Windows 常见的 Python 安装路径
+#ifdef Q_OS_WIN
+    QStringList winPythonPaths = {
+        "C:/Python311/python.exe",
+        "C:/Python310/python.exe",
+        "C:/Python39/python.exe",
+        "C:/Program Files/Python311/python.exe",
+        "C:/Program Files/Python310/python.exe",
+        "C:/Program Files/Python39/python.exe",
+        "C:/Program Files (x86)/Python311-32/python.exe",
+        "C:/Program Files (x86)/Python310-32/python.exe",
+    };
+
+    for (const QString &pyPath : winPythonPaths) {
+        if (QFile::exists(pyPath)) {
+            addEnvironment("系统 Python", pyPath, "system", false);
+        }
+    }
+#endif
 
     // 转换为 CachedEnvironment 并保存到缓存管理器
     QVector<CachedEnvironment> cachedEnvs;

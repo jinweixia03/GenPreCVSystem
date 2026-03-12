@@ -297,6 +297,7 @@ private slots:
 
     void on_actionSettings_triggered();
     void on_actionBatchProcess_triggered();
+    void on_actionTestGPU_triggered();
 
     // ========== 帮助菜单槽函数 ==========
 

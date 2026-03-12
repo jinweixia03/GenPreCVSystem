@@ -171,28 +171,113 @@ QVector<PythonEnvironment> EnvironmentScanner::doScan()
         }
     }
 
-    // 3. 添加系统 Python
+    // 3. 扫描 venv 虚拟环境（常见位置）
     if (!m_shouldStop) {
-        emit scanProgress("检测系统 Python...");
+        emit scanProgress("扫描 venv 虚拟环境...");
 
-        QStringList systemPythonPaths = {
-            "python",
-            "python3",
+        QStringList venvSearchDirs = {
+            homeDir + "/.venvs",
+            homeDir + "/venvs",
+            homeDir + "/virtualenvs",
+            homeDir + "/Envs",
         };
 
-        for (const QString &pyPath : systemPythonPaths) {
-            if (addedPaths.contains(pyPath)) continue;
+        // 添加当前工作目录下的常见 venv 目录
+        QString currentDir = QDir::currentPath();
+        venvSearchDirs.append(currentDir + "/venv");
+        venvSearchDirs.append(currentDir + "/.venv");
+        venvSearchDirs.append(currentDir + "/env");
 
-            PythonEnvironment env;
-            env.name = "系统 Python";
-            env.path = pyPath;
-            env.type = "system";
-            env.hasUltralytics = false;
-            environments.append(env);
-            addedPaths.insert(pyPath);
+        for (const QString &venvDir : venvSearchDirs) {
+            if (m_shouldStop) break;
+
+            QString pythonPath;
+#ifdef Q_OS_WIN
+            pythonPath = venvDir + "/Scripts/python.exe";
+#else
+            pythonPath = venvDir + "/bin/python";
+#endif
+            QString normalizedPath = QDir::cleanPath(pythonPath);
+            if (QFile::exists(normalizedPath) && !addedPaths.contains(normalizedPath)) {
+                PythonEnvironment env;
+                env.name = QFileInfo(venvDir).fileName();
+                env.path = normalizedPath;
+                env.type = "venv";
+                env.hasUltralytics = false;
+                environments.append(env);
+                addedPaths.insert(normalizedPath);
+            }
         }
     }
 
+    // 4. 添加系统 Python（仅当可执行时）
+    if (!m_shouldStop) {
+        emit scanProgress("检测系统 Python...");
+
+#ifdef Q_OS_WIN
+        QStringList systemPythonPaths = {
+            "C:/Python311/python.exe",
+            "C:/Python310/python.exe",
+            "C:/Python39/python.exe",
+            "C:/Program Files/Python311/python.exe",
+            "C:/Program Files/Python310/python.exe",
+            "C:/Program Files/Python39/python.exe",
+        };
+#else
+        QStringList systemPythonPaths;
+#endif
+        for (const QString &pyPath : systemPythonPaths) {
+            if (addedPaths.contains(pyPath)) continue;
+            if (QFile::exists(pyPath)) {
+                PythonEnvironment env;
+                env.name = "系统 Python";
+                env.path = QDir::cleanPath(pyPath);
+                env.type = "system";
+                env.hasUltralytics = false;
+                environments.append(env);
+                addedPaths.insert(pyPath);
+            }
+        }
+    }
+
+    // 5. 检测 conda base 环境
+    if (!m_shouldStop) {
+        emit scanProgress("检测 Conda base 环境...");
+
+        QStringList condaBasePaths = {
+            homeDir + "/miniconda3",
+            homeDir + "/anaconda3",
+            homeDir + "/Miniconda3",
+            homeDir + "/Anaconda3",
+            "C:/ProgramData/miniconda3",
+            "C:/ProgramData/anaconda3",
+            "C:/miniconda3",
+            "C:/anaconda3",
+        };
+
+        for (const QString &basePath : condaBasePaths) {
+            if (m_shouldStop) break;
+
+            QString pythonPath;
+#ifdef Q_OS_WIN
+            pythonPath = basePath + "/python.exe";
+#else
+            pythonPath = basePath + "/bin/python";
+#endif
+            QString normalizedPath = QDir::cleanPath(pythonPath);
+            if (QFile::exists(normalizedPath) && !addedPaths.contains(normalizedPath)) {
+                PythonEnvironment env;
+                env.name = "base";
+                env.path = normalizedPath;
+                env.type = "conda";
+                env.hasUltralytics = false;
+                environments.append(env);
+                addedPaths.insert(normalizedPath);
+            }
+        }
+    }
+
+    emit scanProgress(QString("扫描完成，共发现 %1 个环境").arg(environments.size()));
     return environments;
 }
 

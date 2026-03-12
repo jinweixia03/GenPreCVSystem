@@ -29,6 +29,8 @@
 #include <QDebug>
 #include <QtConcurrent/QtConcurrent>
 #include <QFuture>
+#include <QFutureWatcher>
+#include <QMetaObject>
 
 namespace GenPreCVSystem {
 namespace Widgets {
@@ -38,6 +40,7 @@ EnvironmentServiceWidget::EnvironmentServiceWidget(QWidget *parent)
     , m_envCombo(nullptr)
     , m_btnReloadEnvs(nullptr)
     , m_lblServiceStatus(nullptr)
+    , m_lblGpuStatus(nullptr)
     , m_cmbModelSelect(nullptr)
     , m_btnBrowseModel(nullptr)
     , m_lblModelStatus(nullptr)
@@ -96,6 +99,13 @@ void EnvironmentServiceWidget::setupUI()
     m_lblServiceStatus->setStyleSheet("color: #333333; font-size: 11px;");
     m_lblServiceStatus->setWordWrap(true);
     envLayout->addWidget(m_lblServiceStatus);
+
+    // GPU 状态标签
+    m_lblGpuStatus = new QLabel("🎮 GPU: 检测中...", this);
+    m_lblGpuStatus->setObjectName("lblGpuStatus");
+    m_lblGpuStatus->setStyleSheet("color: #666666; font-size: 10px;");
+    m_lblGpuStatus->setWordWrap(true);
+    envLayout->addWidget(m_lblGpuStatus);
 
     mainLayout->addWidget(envGroup);
 
@@ -171,6 +181,90 @@ void EnvironmentServiceWidget::updateServiceStatus()
     } else {
         m_lblServiceStatus->setText("○ 服务状态: 未启动");
         m_lblServiceStatus->setStyleSheet("color: #666666; font-size: 11px;");
+    }
+
+    // 同时更新 GPU 状态
+    updateGpuStatus();
+}
+
+void EnvironmentServiceWidget::updateGpuStatus()
+{
+    if (!m_dlService) {
+        m_lblGpuStatus->setText("🎮 GPU: 服务未初始化");
+        m_lblGpuStatus->setStyleSheet("color: #999999; font-size: 10px;");
+        return;
+    }
+
+    // 获取当前环境信息
+    QString envPath = m_dlService->currentEnvironmentPath();
+    if (envPath.isEmpty()) {
+        m_lblGpuStatus->setText("🎮 GPU: 未选择环境");
+        m_lblGpuStatus->setStyleSheet("color: #999999; font-size: 10px;");
+        return;
+    }
+
+    Utils::EnvironmentCacheManager *cacheMgr = Utils::EnvironmentCacheManager::instance();
+    Utils::CachedEnvironment env = cacheMgr->getEnvironment(envPath);
+
+    // 如果环境不在缓存中或需要重新验证，触发快速验证
+    if (!env.isValid || env.needsRevalidation()) {
+        emit logMessage(QString("[GPU状态] 环境需要验证，正在检测: %1").arg(envPath));
+
+        // 显示检测中状态
+        m_lblGpuStatus->setText("🎮 GPU: 正在检测...");
+        m_lblGpuStatus->setStyleSheet("color: #0066cc; font-size: 10px;");
+
+        // 异步执行验证，避免阻塞UI
+        QFutureWatcher<Utils::CachedEnvironment> *watcher = new QFutureWatcher<Utils::CachedEnvironment>(this);
+        connect(watcher, &QFutureWatcher<Utils::CachedEnvironment>::finished, this, [this, watcher]() {
+            Utils::CachedEnvironment validated = watcher->result();
+            watcher->deleteLater();
+
+            // 只更新当前选中的环境
+            if (m_dlService && validated.path == m_dlService->currentEnvironmentPath()) {
+                updateGpuStatusDisplay(validated);
+            }
+        });
+
+        QFuture<Utils::CachedEnvironment> future = QtConcurrent::run([envPath]() {
+            Utils::EnvironmentCacheManager *cacheMgr = Utils::EnvironmentCacheManager::instance();
+            return cacheMgr->quickValidate(envPath);
+        });
+        watcher->setFuture(future);
+        return;
+    }
+
+    if (!env.hasTorch) {
+        m_lblGpuStatus->setText("🎮 GPU: 未安装 PyTorch");
+        m_lblGpuStatus->setStyleSheet("color: #cc6600; font-size: 10px;");
+        return;
+    }
+
+    updateGpuStatusDisplay(env);
+}
+
+void EnvironmentServiceWidget::updateGpuStatusDisplay(const Utils::CachedEnvironment &env)
+{
+    if (!env.hasTorch) {
+        m_lblGpuStatus->setText("🎮 GPU: 未安装 PyTorch");
+        m_lblGpuStatus->setStyleSheet("color: #cc6600; font-size: 10px;");
+        return;
+    }
+
+    if (env.hasGpu()) {
+        QString gpuText = QString("🎮 GPU: %1").arg(env.gpuName);
+        if (env.cudaDeviceCount > 1) {
+            gpuText += QString(" [x%1]").arg(env.cudaDeviceCount);
+        }
+        m_lblGpuStatus->setText(gpuText);
+        m_lblGpuStatus->setStyleSheet("color: #009900; font-size: 10px; font-weight: bold;");
+        m_lblGpuStatus->setToolTip(QString("CUDA 版本: %1\n显存: %2")
+                                   .arg(env.cudaVersion, env.gpuMemory));
+    } else {
+        m_lblGpuStatus->setText("🎮 GPU: CPU 模式运行");
+        m_lblGpuStatus->setStyleSheet("color: #cc6600; font-size: 10px;");
+        m_lblGpuStatus->setToolTip("未检测到 CUDA GPU，推理将使用 CPU 运行\n"
+                                   "如需 GPU 加速，请安装 CUDA 版本的 PyTorch");
     }
 }
 
@@ -284,6 +378,15 @@ void EnvironmentServiceWidget::populateEnvironmentCombo(const QVector<Utils::Cac
         }
         if (env.hasTorch) {
             tooltip += QString("\nPyTorch: %1").arg(env.torchVersion);
+        }
+
+        // 添加 GPU 信息到工具提示
+        tooltip += "\n---\n" + env.getGpuStatusString();
+        if (env.hasGpu()) {
+            tooltip += QString("\nCUDA 版本: %1").arg(env.cudaVersion);
+            if (env.cudaDeviceCount > 1) {
+                tooltip += QString("\nGPU 数量: %1").arg(env.cudaDeviceCount);
+            }
         }
 
         int index = m_envCombo->count();
@@ -439,6 +542,9 @@ void EnvironmentServiceWidget::onServiceStartedSuccessfully()
     m_lblServiceStatus->setText("● 服务状态: 运行中");
     m_lblServiceStatus->setStyleSheet("color: #0066cc; font-size: 11px; font-weight: bold;");
 
+    // 服务启动成功后更新 GPU 状态
+    updateGpuStatus();
+
     emit logMessage("[环境服务] DL 服务已成功启动并运行");
     emit serviceStarted();
 
@@ -552,6 +658,34 @@ void EnvironmentServiceWidget::onEnvironmentChanged(int index)
 
     // 更新模型状态
     updateModelStatus();
+
+    // 更新 GPU 状态（优先使用缓存中的信息立即显示）
+    Utils::EnvironmentCacheManager *cacheMgr = Utils::EnvironmentCacheManager::instance();
+    Utils::CachedEnvironment env = cacheMgr->getEnvironment(envPath);
+    if (env.isValid) {
+        // 立即显示缓存的 GPU 状态
+        if (env.hasTorch) {
+            if (env.hasGpu()) {
+                QString gpuText = QString("🎮 GPU: %1").arg(env.gpuName);
+                if (env.cudaDeviceCount > 1) {
+                    gpuText += QString(" [x%1]").arg(env.cudaDeviceCount);
+                }
+                m_lblGpuStatus->setText(gpuText + " (缓存)");
+                m_lblGpuStatus->setStyleSheet("color: #66aa66; font-size: 10px;");
+                m_lblGpuStatus->setToolTip(QString("CUDA 版本: %1\n显存: %2\n(服务启动后将刷新)")
+                                           .arg(env.cudaVersion, env.gpuMemory));
+            } else {
+                m_lblGpuStatus->setText("🎮 GPU: CPU 模式 (缓存)");
+                m_lblGpuStatus->setStyleSheet("color: #cc9966; font-size: 10px;");
+            }
+        } else {
+            m_lblGpuStatus->setText("🎮 GPU: 未安装 PyTorch");
+            m_lblGpuStatus->setStyleSheet("color: #999999; font-size: 10px;");
+        }
+    } else {
+        m_lblGpuStatus->setText("🎮 GPU: 等待验证...");
+        m_lblGpuStatus->setStyleSheet("color: #666666; font-size: 10px;");
+    }
 
     // 自动启动服务（使用较短的延迟确保服务已停止）
     emit logMessage("[环境服务] 准备启动新环境服务...");
@@ -679,15 +813,27 @@ void EnvironmentServiceWidget::onScanCompleted(const QVector<Utils::CachedEnviro
     m_btnReloadEnvs->setEnabled(true);
     m_btnReloadEnvs->setText("🔄");
 
+    // 重置 GPU 状态显示
+    m_lblGpuStatus->setText("🎮 GPU: 等待启动服务...");
+    m_lblGpuStatus->setStyleSheet("color: #999999; font-size: 10px;");
+
     emit logMessage("[环境服务] ================================");
     emit logMessage("[环境服务] 环境重载完成");
     emit logMessage(QString("[环境服务] 总计: %1 个环境, 就绪: %2 个").arg(environments.size()).arg(readyCount));
     emit logMessage("[环境服务] ================================");
 
-    // 启动后台验证来检查 ultralytics（更新就绪状态）
+    // 启动后台验证来检查 ultralytics 和 GPU 信息
     if (!environments.isEmpty()) {
-        emit logMessage("[环境服务] 启动后台验证检查 ultralytics...");
+        emit logMessage("[环境服务] 启动后台验证检查环境...");
         cacheMgr->startBackgroundValidation();
+        // 连接验证完成信号，在验证完成后更新GPU状态
+        connect(cacheMgr, &Utils::EnvironmentCacheManager::environmentValidated,
+                this, [this](const Utils::CachedEnvironment &env) {
+                    // 如果验证的是当前选中的环境，更新GPU状态
+                    if (m_dlService && env.path == m_dlService->currentEnvironmentPath()) {
+                        updateGpuStatus();
+                    }
+                }, Qt::UniqueConnection);
     }
 
     // 尝试自动启动（即使没有验证通过，让启动过程去验证）

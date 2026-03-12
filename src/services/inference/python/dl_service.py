@@ -5,6 +5,8 @@
 这是一个常驻内存的 Python 服务，通过 stdin/stdout 与 C++ 应用通信。
 使用 JSON 格式进行请求和响应。
 
+基于 base_service.py 提供的基类实现。
+
 使用方法:
     python dl_service.py
 
@@ -28,14 +30,6 @@
     }
 
     {
-        "command": "segment",
-        "image_path": "path/to/image.jpg",
-        "conf_threshold": 0.25,
-        "iou_threshold": 0.45,
-        "image_size": 640
-    }
-
-    {
         "command": "exit"
     }
 
@@ -51,9 +45,10 @@ import sys
 import json
 import os
 from pathlib import Path
+from typing import Dict, Any
 
-# 修复 OpenMP 库冲突问题（必须在导入其他库之前设置）
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+# 导入基类
+from base_service import BaseService, ModelServiceMixin, ImageServiceMixin
 
 # 尝试导入 ultralytics
 try:
@@ -61,65 +56,140 @@ try:
     HAS_ULTRALYTICS = True
 except ImportError:
     HAS_ULTRALYTICS = False
-    print(json.dumps({
-        "success": False,
-        "message": "ultralytics 库未安装。请运行: pip install ultralytics"
-    }), flush=True)
+
+# 尝试导入 torch
+try:
+    import torch
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
 
 
-class DLService:
+class DLService(BaseService, ModelServiceMixin, ImageServiceMixin):
     """深度学习推理服务"""
 
-    def __init__(self):
-        self.model = None
-        self.class_names = []
-        self.model_path = None
+    # 默认参数常量
+    DEFAULT_CONF_THRESHOLD = 0.25
+    DEFAULT_IOU_THRESHOLD = 0.45
+    DEFAULT_IMAGE_SIZE = 640
+    DEFAULT_TOP_K = 5
 
-    def load_model(self, model_path: str, labels_path: str = None) -> dict:
-        """加载模型"""
+    # 参数范围限制
+    MIN_CONF_THRESHOLD = 0.01
+    MAX_CONF_THRESHOLD = 1.0
+    MIN_IOU_THRESHOLD = 0.01
+    MAX_IOU_THRESHOLD = 1.0
+    MIN_IMAGE_SIZE = 32
+    MAX_IMAGE_SIZE = 4096
+    MAX_TOP_K = 1000
+
+    def __init__(self):
+        BaseService.__init__(self, "DL")
+        ModelServiceMixin.__init__(self)
+        ImageServiceMixin.__init__(self)
+
+    def get_service_info(self) -> Dict[str, Any]:
+        """获取服务信息"""
+        device = "unknown"
+        if HAS_TORCH:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        return {
+            "has_ultralytics": HAS_ULTRALYTICS,
+            "has_torch": HAS_TORCH,
+            "device": device,
+            "default_conf": self.DEFAULT_CONF_THRESHOLD,
+            "default_iou": self.DEFAULT_IOU_THRESHOLD,
+            "default_image_size": self.DEFAULT_IMAGE_SIZE
+        }
+
+    def handle_command(self, command: str, request: Dict[str, Any]) -> Dict[str, Any]:
+        """处理命令"""
         if not HAS_ULTRALYTICS:
-            return {"success": False, "message": "ultralytics 库未安装"}
+            return self.create_error_response("ultralytics 库未安装。请运行: pip install ultralytics")
+
+        handlers = {
+            "load_model": self._handle_load_model,
+            "detect": self._handle_detect,
+            "segment": self._handle_segment,
+            "classify": self._handle_classify,
+            "keypoint": self._handle_keypoint,
+        }
+
+        handler = handlers.get(command)
+        if handler:
+            return handler(request)
+        else:
+            return self.create_error_response(f"未知命令: {command}")
+
+    def _handle_load_model(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """处理加载模型命令"""
+        model_path = request.get("model_path", "")
+        labels_path = request.get("labels_path")
+
+        # 验证模型路径
+        valid, error_msg = self.validate_model_path(model_path)
+        if not valid:
+            return self.create_error_response(error_msg)
 
         try:
-            # 检查模型文件是否存在
-            if not os.path.exists(model_path):
-                return {"success": False, "message": f"模型文件不存在: {model_path}"}
-
             # 加载模型
             self.model = YOLO(model_path)
             self.model_path = model_path
 
             # 加载类别标签
-            if labels_path and os.path.exists(labels_path):
-                with open(labels_path, 'r', encoding='utf-8') as f:
-                    self.class_names = [line.strip() for line in f if line.strip()]
-            else:
-                # 使用模型自带的类别名称
+            self.class_names = self.load_class_names(labels_path)
+            if not self.class_names and hasattr(self.model, 'names'):
                 self.class_names = list(self.model.names.values())
 
-            return {
-                "success": True,
-                "message": f"模型加载成功: {model_path}",
-                "data": {
+            self.model_loaded = True
+
+            return self.create_success_response(
+                message=f"模型加载成功: {model_path}",
+                data={
                     "num_classes": len(self.class_names),
                     "class_names": self.class_names[:10]  # 只返回前10个
                 }
-            }
+            )
 
         except Exception as e:
-            return {"success": False, "message": f"加载模型失败: {str(e)}"}
+            self.model_loaded = False
+            import traceback
+            return self.create_error_response(f"加载模型失败: {str(e)}", traceback.format_exc())
 
-    def detect(self, image_path: str, conf_threshold: float = 0.25,
-               iou_threshold: float = 0.45, image_size: int = 640) -> dict:
-        """执行目标检测"""
-        if self.model is None:
-            return {"success": False, "message": "模型未加载"}
+    def _get_validated_image_params(self, request: Dict[str, Any]) -> tuple:
+        """获取并验证图像处理参数"""
+        image_path = request.get("image_path", "")
+
+        # 验证图像路径
+        valid, error_msg = self.validate_image_path(image_path)
+        if not valid:
+            return None, self.create_error_response(error_msg)
+
+        if not self.model_loaded:
+            return None, self.create_error_response("模型未加载")
+
+        # 获取并验证参数
+        conf_threshold = float(request.get("conf_threshold", self.DEFAULT_CONF_THRESHOLD))
+        iou_threshold = float(request.get("iou_threshold", self.DEFAULT_IOU_THRESHOLD))
+        image_size = int(request.get("image_size", self.DEFAULT_IMAGE_SIZE))
+
+        # 限制参数范围
+        conf_threshold = max(self.MIN_CONF_THRESHOLD, min(self.MAX_CONF_THRESHOLD, conf_threshold))
+        iou_threshold = max(self.MIN_IOU_THRESHOLD, min(self.MAX_IOU_THRESHOLD, iou_threshold))
+        image_size = max(self.MIN_IMAGE_SIZE, min(self.MAX_IMAGE_SIZE, image_size))
+
+        return (image_path, conf_threshold, iou_threshold, image_size), None
+
+    def _handle_detect(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """处理目标检测命令"""
+        params, error = self._get_validated_image_params(request)
+        if error:
+            return error
+
+        image_path, conf_threshold, iou_threshold, image_size = params
 
         try:
-            # 检查图像文件
-            if not os.path.exists(image_path):
-                return {"success": False, "message": f"图像文件不存在: {image_path}"}
-
             # 执行推理
             results = self.model(
                 image_path,
@@ -135,7 +205,7 @@ class DLService:
                 boxes = result.boxes
                 if boxes is not None:
                     for i in range(len(boxes)):
-                        box = boxes.xyxy[i].cpu().numpy()  # x1, y1, x2, y2
+                        box = boxes.xyxy[i].cpu().numpy()
                         conf = float(boxes.conf[i].cpu().numpy())
                         cls_id = int(boxes.cls[i].cpu().numpy())
 
@@ -150,29 +220,27 @@ class DLService:
                             "label": self.class_names[cls_id] if cls_id < len(self.class_names) else f"class_{cls_id}"
                         })
 
-            return {
-                "success": True,
-                "message": f"检测完成，发现 {len(detections)} 个目标",
-                "data": {
+            return self.create_success_response(
+                message=f"检测完成，发现 {len(detections)} 个目标",
+                data={
                     "detections": detections,
                     "count": len(detections)
                 }
-            }
+            )
 
         except Exception as e:
-            return {"success": False, "message": f"检测失败: {str(e)}"}
+            import traceback
+            return self.create_error_response(f"检测失败: {str(e)}", traceback.format_exc())
 
-    def segment(self, image_path: str, conf_threshold: float = 0.25,
-                iou_threshold: float = 0.45, image_size: int = 640) -> dict:
-        """执行实例分割"""
-        if self.model is None:
-            return {"success": False, "message": "模型未加载"}
+    def _handle_segment(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """处理实例分割命令"""
+        params, error = self._get_validated_image_params(request)
+        if error:
+            return error
+
+        image_path, conf_threshold, iou_threshold, image_size = params
 
         try:
-            # 检查图像文件
-            if not os.path.exists(image_path):
-                return {"success": False, "message": f"图像文件不存在: {image_path}"}
-
             # 执行推理
             results = self.model(
                 image_path,
@@ -209,11 +277,9 @@ class DLService:
                         # 提取掩码多边形
                         mask_polygon = []
                         if masks is not None and i < len(masks):
-                            # masks.xy 返回多边形坐标 (N, 2)
                             if hasattr(masks, 'xy') and masks.xy is not None:
-                                polygon = masks.xy[i]  # 获取第 i 个掩码的多边形
+                                polygon = masks.xy[i]
                                 if polygon is not None and len(polygon) > 0:
-                                    # 将多边形点转换为列表格式
                                     for pt in polygon:
                                         mask_polygon.append({
                                             "x": float(pt[0]),
@@ -223,28 +289,34 @@ class DLService:
                         instance["mask_polygon"] = mask_polygon
                         instances.append(instance)
 
-            return {
-                "success": True,
-                "message": f"分割完成，发现 {len(instances)} 个实例",
-                "data": {
-                    "detections": instances,  # 使用统一字段名
+            return self.create_success_response(
+                message=f"分割完成，发现 {len(instances)} 个实例",
+                data={
+                    "detections": instances,
                     "count": len(instances)
                 }
-            }
+            )
 
         except Exception as e:
-            return {"success": False, "message": f"分割失败: {str(e)}"}
+            import traceback
+            return self.create_error_response(f"分割失败: {str(e)}", traceback.format_exc())
 
-    def classify(self, image_path: str, top_k: int = 5) -> dict:
-        """执行图像分类"""
-        if self.model is None:
-            return {"success": False, "message": "模型未加载"}
+    def _handle_classify(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """处理图像分类命令"""
+        image_path = request.get("image_path", "")
+
+        # 验证图像路径
+        valid, error_msg = self.validate_image_path(image_path)
+        if not valid:
+            return self.create_error_response(error_msg)
+
+        if not self.model_loaded:
+            return self.create_error_response("模型未加载")
+
+        top_k = int(request.get("top_k", self.DEFAULT_TOP_K))
+        top_k = max(1, min(self.MAX_TOP_K, top_k))
 
         try:
-            # 检查图像文件
-            if not os.path.exists(image_path):
-                return {"success": False, "message": f"图像文件不存在: {image_path}"}
-
             # 执行推理
             results = self.model(image_path, verbose=False)
 
@@ -253,8 +325,6 @@ class DLService:
             for result in results:
                 probs = result.probs
                 if probs is not None:
-                    # 获取 top-k 分类结果
-                    import torch
                     values, indices = torch.topk(probs.data, min(top_k, len(probs.data)))
                     for i, (val, idx) in enumerate(zip(values, indices)):
                         classifications.append({
@@ -264,30 +334,27 @@ class DLService:
                             "label": self.class_names[int(idx.cpu().numpy())] if int(idx.cpu().numpy()) < len(self.class_names) else f"class_{idx}"
                         })
 
-            return {
-                "success": True,
-                "message": f"分类完成，Top-1: {classifications[0]['label'] if classifications else 'N/A'}",
-                "data": {
+            return self.create_success_response(
+                message=f"分类完成，Top-1: {classifications[0]['label'] if classifications else 'N/A'}",
+                data={
                     "classifications": classifications,
-                    "top_prediction": classifications[0] if classifications else None,
-                    "detections": []  # 统一接口
+                    "top_prediction": classifications[0] if classifications else None
                 }
-            }
+            )
 
         except Exception as e:
-            return {"success": False, "message": f"分类失败: {str(e)}"}
+            import traceback
+            return self.create_error_response(f"分类失败: {str(e)}", traceback.format_exc())
 
-    def keypoint(self, image_path: str, conf_threshold: float = 0.25,
-                 iou_threshold: float = 0.45, image_size: int = 640) -> dict:
-        """执行关键点/姿态检测"""
-        if self.model is None:
-            return {"success": False, "message": "模型未加载"}
+    def _handle_keypoint(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """处理关键点检测命令"""
+        params, error = self._get_validated_image_params(request)
+        if error:
+            return error
+
+        image_path, conf_threshold, iou_threshold, image_size = params
 
         try:
-            # 检查图像文件
-            if not os.path.exists(image_path):
-                return {"success": False, "message": f"图像文件不存在: {image_path}"}
-
             # 执行推理
             results = self.model(
                 image_path,
@@ -324,7 +391,7 @@ class DLService:
 
                         # 提取关键点
                         if keypoints is not None and i < len(keypoints):
-                            kps = keypoints.xy[i].cpu().numpy()  # (num_keypoints, 2)
+                            kps = keypoints.xy[i].cpu().numpy()
                             kps_conf = keypoints.conf[i].cpu().numpy() if keypoints.conf is not None else None
 
                             for j, kp in enumerate(kps):
@@ -339,96 +406,28 @@ class DLService:
 
                         detections.append(detection)
 
-            return {
-                "success": True,
-                "message": f"关键点检测完成，发现 {len(detections)} 个目标",
-                "data": {
+            return self.create_success_response(
+                message=f"关键点检测完成，发现 {len(detections)} 个目标",
+                data={
                     "detections": detections,
                     "count": len(detections)
                 }
-            }
+            )
 
         except Exception as e:
-            return {"success": False, "message": f"关键点检测失败: {str(e)}"}
+            import traceback
+            return self.create_error_response(f"关键点检测失败: {str(e)}", traceback.format_exc())
+
+    def cleanup(self):
+        """清理资源"""
+        self.model = None
+        self.model_loaded = False
 
 
 def main():
-    """主循环"""
+    """主函数"""
     service = DLService()
-
-    # 输出就绪信号
-    print(json.dumps({
-        "success": True,
-        "message": "服务已启动",
-        "data": {"has_ultralytics": HAS_ULTRALYTICS}
-    }), flush=True)
-
-    # 主循环：从 stdin 读取命令
-    for line in sys.stdin:
-        line = line.strip()
-        if not line:
-            continue
-
-        try:
-            request = json.loads(line)
-            command = request.get("command", "")
-
-            if command == "exit":
-                print(json.dumps({"success": True, "message": "服务已停止"}), flush=True)
-                break
-
-            elif command == "load_model":
-                response = service.load_model(
-                    request.get("model_path", ""),
-                    request.get("labels_path")
-                )
-
-            elif command == "detect":
-                response = service.detect(
-                    request.get("image_path", ""),
-                    request.get("conf_threshold", 0.25),
-                    request.get("iou_threshold", 0.45),
-                    request.get("image_size", 640)
-                )
-
-            elif command == "segment":
-                response = service.segment(
-                    request.get("image_path", ""),
-                    request.get("conf_threshold", 0.25),
-                    request.get("iou_threshold", 0.45),
-                    request.get("image_size", 640)
-                )
-
-            elif command == "classify":
-                response = service.classify(
-                    request.get("image_path", ""),
-                    request.get("top_k", 5)
-                )
-
-            elif command == "keypoint":
-                response = service.keypoint(
-                    request.get("image_path", ""),
-                    request.get("conf_threshold", 0.25),
-                    request.get("iou_threshold", 0.45),
-                    request.get("image_size", 640)
-                )
-
-            else:
-                response = {"success": False, "message": f"未知命令: {command}"}
-
-            print(json.dumps(response, ensure_ascii=False), flush=True)
-
-        except json.JSONDecodeError as e:
-            print(json.dumps({
-                "success": False,
-                "message": f"JSON 解析错误: {str(e)}"
-            }), flush=True)
-
-        except Exception as e:
-            print(json.dumps({
-                "success": False,
-                "message": f"处理错误: {str(e)}"
-            }), flush=True)
+    service.run()
 
 
 if __name__ == "__main__":

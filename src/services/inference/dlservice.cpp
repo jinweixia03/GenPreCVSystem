@@ -12,6 +12,7 @@
  */
 
 #include "dlservice.h"
+#include "fileutils.h"
 #include <QCoreApplication>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -827,6 +828,23 @@ QJsonObject DLService::sendRequest(const QJsonObject &request)
 
 bool DLService::loadModel(const QString &modelPath, const QString &labelsPath)
 {
+    // 路径安全验证
+    QString errorMsg;
+    if (!FileUtils::isValidModelPath(modelPath, errorMsg)) {
+        emit logMessage("模型路径验证失败: " + errorMsg);
+        emit modelLoaded(false, errorMsg);
+        return false;
+    }
+
+    // 标签文件路径验证（如果提供）
+    if (!labelsPath.isEmpty()) {
+        if (!FileUtils::isValidFilePath(labelsPath)) {
+            emit logMessage("标签文件路径不安全: " + labelsPath);
+            emit modelLoaded(false, "标签文件路径不安全");
+            return false;
+        }
+    }
+
     QJsonObject request;
     request["command"] = "load_model";
     request["model_path"] = modelPath;
@@ -907,6 +925,17 @@ DetectionResult DLService::detect(const QString &imagePath,
         return result;
     }
 
+    // 路径安全验证
+    QString errorMsg;
+    if (!FileUtils::isValidImagePath(imagePath, errorMsg)) {
+        DetectionResult result;
+        result.success = false;
+        result.message = errorMsg;
+        emit logMessage("检测失败: " + errorMsg);
+        emit detectionCompleted(result);
+        return result;
+    }
+
     QElapsedTimer timer;
     timer.start();
 
@@ -941,6 +970,17 @@ DetectionResult DLService::segment(const QString &imagePath,
         result.success = false;
         result.message = "模型未加载";
         emit logMessage(result.message);
+        return result;
+    }
+
+    // 路径安全验证
+    QString errorMsg;
+    if (!FileUtils::isValidImagePath(imagePath, errorMsg)) {
+        DetectionResult result;
+        result.success = false;
+        result.message = errorMsg;
+        emit logMessage("分割失败: " + errorMsg);
+        emit detectionCompleted(result);
         return result;
     }
 
@@ -1054,6 +1094,17 @@ ClassificationResultList DLService::classify(const QString &imagePath, int topK)
         return result;
     }
 
+    // 路径安全验证
+    QString errorMsg;
+    if (!FileUtils::isValidImagePath(imagePath, errorMsg)) {
+        ClassificationResultList result;
+        result.success = false;
+        result.message = errorMsg;
+        emit logMessage("分类失败: " + errorMsg);
+        emit classificationCompleted(result);
+        return result;
+    }
+
     QElapsedTimer timer;
     timer.start();
 
@@ -1088,6 +1139,17 @@ ClassificationResultList DLService::fewShotClassify(const QString &imagePath,
         result.success = false;
         result.message = "模型未加载";
         emit logMessage(result.message);
+        return result;
+    }
+
+    // 路径安全验证
+    QString errorMsg;
+    if (!FileUtils::isValidImagePath(imagePath, errorMsg)) {
+        ClassificationResultList result;
+        result.success = false;
+        result.message = errorMsg;
+        emit logMessage("小样本分类失败: " + errorMsg);
+        emit classificationCompleted(result);
         return result;
     }
 
@@ -1134,6 +1196,17 @@ KeypointResult DLService::keypoint(const QString &imagePath,
         result.success = false;
         result.message = "模型未加载";
         emit logMessage(result.message);
+        return result;
+    }
+
+    // 路径安全验证
+    QString errorMsg;
+    if (!FileUtils::isValidImagePath(imagePath, errorMsg)) {
+        KeypointResult result;
+        result.success = false;
+        result.message = errorMsg;
+        emit logMessage("关键点检测失败: " + errorMsg);
+        emit keypointCompleted(result);
         return result;
     }
 

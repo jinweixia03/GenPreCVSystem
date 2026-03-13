@@ -629,7 +629,7 @@ QWidget* ParameterPanelFactory::createRemoteSceneFewShotClassificationParams()
     infoLabel->setText(
         "<p style='font-size: 11px; color: #666;'>"
         "基于原型网络的小样本学习，通过 N-way-K-shot 方式对遥感影像进行场景分类。"
-        "支持 30 类遥感场景（MEET-FSL 数据集）。"
+        "支持 40 类遥感场景（MEET-FSL 数据集）。"
         "</p>"
     );
     infoLabel->setWordWrap(true);

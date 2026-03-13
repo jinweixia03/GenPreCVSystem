@@ -1464,7 +1464,7 @@ void TaskController::showFSLInfoDialog()
         tr("遥感影像小样本分类是基于原型网络（Prototypical Networks）的小样本学习方法，"
            "旨在解决遥感影像场景分类中标注数据稀缺的问题。\n\n"
            "通过 N-way-K-shot 的学习范式，模型能够从少量标注样本中快速学习新类别，"
-           "适用于 30 类典型遥感场景的分类任务。")
+           "适用于 40 类典型遥感场景的分类任务。")
     );
     introLabel->setWordWrap(true);
     introLabel->setStyleSheet("font-size: 12px; line-height: 1.6;");
@@ -1487,8 +1487,8 @@ void TaskController::showFSLInfoDialog()
     paramLayout->addWidget(paramLabel);
     contentLayout->addWidget(paramGroup);
 
-    // MEET-FSL 数据集类别（30类）
-    QGroupBox *classGroup = new QGroupBox(tr("📊 MEET-FSL 数据集类别（30类）"));
+    // MEET-FSL 数据集类别（40类）
+    QGroupBox *classGroup = new QGroupBox(tr("📊 MEET-FSL 数据集类别（40类）"));
     QVBoxLayout *classLayout = new QVBoxLayout(classGroup);
 
     // 创建两列布局
@@ -1497,16 +1497,20 @@ void TaskController::showFSLInfoDialog()
     QVBoxLayout *rightCol = new QVBoxLayout();
 
     QStringList classes = {
-        "1. 航空站 (Airport)", "2. 桥梁 (Bridge)", "3. 中央商务区 (CBD)",
-        "4. 教堂 (Church)", "5. 商业区 (Commercial)", "6. 密集住宅区",
-        "7. 工业区 (Industrial)", "8. 中等密度住宅区", "9. 低密度住宅区",
-        "10. 农场 (Farm)", "11. 森林 (Forest)", "12. 草地 (Meadow)",
-        "13. 湿地 (Wetland)", "14. 水体 (Water)", "15. 湿地植被 (Marsh)",
-        "16. 海滩 (Beach)", "17. 港口 (Port)", "18. 广场 (Square)",
-        "19. 高尔夫球场", "20. 游乐场 (Playground)", "21. 大学 (University)",
-        "22. 医院 (Hospital)", "23. 机场航站楼", "24. 停机坪 (Runway)",
-        "25. 高速公路 (Freeway)", "26. 铁路 (Railway)", "27. 停车场 (Parking)",
-        "28. 工地 (Construction)", "29. 灾害 (Disaster)", "30. 立交桥 (Overpass)"
+        "1. 航空站 (Airport)", "2. 艺术中心 (Art center)", "3. 棒球场 (Baseball field)",
+        "4. 桥梁 (Bridge)", "5. 佛教寺庙 (Buddhist temple)", "6. 化工厂 (Chemical plant)",
+        "7. 圣诞树农场", "8. 教堂 (Church)", "9. 云层 (Cloud)",
+        "10. 咖啡种植园", "11. 建筑工地", "12. 水坝 (Dam)",
+        "13. 驾校 (Driving school)", "14. 旱田 (Dry field)", "15. 足球场 (Football field)",
+        "16. 冰川 (Glacier)", "17. 高速公路 (Highway)", "18. 湖泊 (Lake)",
+        "19. 垃圾填埋场 (Landfill)", "20. 低层住宅区", "21. 军事中心",
+        "22. 清真寺 (Mosque)", "23. 山脉 (Mountain)", "24. 办公楼 (Office)",
+        "25. 立交桥 (Overpass)", "26. 稻田 (Paddy field)", "27. 港口 (Port)",
+        "28. 铁路 (Railway)", "29. 度假村 (Resort)", "30. 岩石 (Rock)",
+        "31. 环形交叉路口", "32. 灌木丛 (Scrub)", "33. 太阳能发电厂",
+        "34. 体育场 (Stadium)", "35. 变电站 (Substation)", "36. 网球场",
+        "37. 主题公园", "38. 城中村 (Urban village)", "39. 空置停车场",
+        "40. 湿地 (Wetland)"
     };
 
     for (int i = 0; i < classes.size(); ++i) {

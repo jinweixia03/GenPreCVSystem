@@ -77,35 +77,45 @@ except ImportError:
 # 默认类别列表（当无法从数据集加载时使用）
 DEFAULT_CLASSES = [
     "航空站 (Airport)",
+    "艺术中心 (Art center)",
+    "棒球场 (Baseball field)",
     "桥梁 (Bridge)",
-    "中央商务区 (CentralBusinessDistrict)",
+    "佛教寺庙 (Buddhist temple)",
+    "化工厂 (Chemical plant)",
+    "圣诞树农场 (Christmas tree farm)",
     "教堂 (Church)",
-    "商业区 (Commercial)",
-    "密集住宅区 (DenseResidential)",
-    "工业区 (Industrial)",
-    "中等密度住宅区 (MediumDensityResidential)",
-    "低密度住宅区 (LowDensityResidential)",
-    "农场 (Farm)",
-    "森林 (Forest)",
-    "草地 (Meadow)",
-    "湿地 (Wetland)",
-    "水体 (Water)",
-    "湿地植被 (Marsh)",
-    "海滩 (Beach)",
+    "云层 (Cloud)",
+    "咖啡种植园 (Coffee plantation)",
+    "建筑工地 (Construction)",
+    "水坝 (Dam)",
+    "驾校 (Driving school)",
+    "旱田 (Dry field)",
+    "足球场 (Football field)",
+    "冰川 (Glacier)",
+    "高速公路 (Highway)",
+    "湖泊 (Lake)",
+    "垃圾填埋场 (Landfill)",
+    "低层住宅区 (Low-rise residential area)",
+    "军事中心 (Military center)",
+    "清真寺 (Mosque)",
+    "山脉 (Mountain)",
+    "办公楼 (Office)",
+    "立交桥 (Overpass)",
+    "稻田 (Paddy field)",
     "港口 (Port)",
-    "广场 (Square)",
-    "高尔夫球场 (GolfCourse)",
-    "游乐场 (Playground)",
-    "大学 (University)",
-    "医院 (Hospital)",
-    "机场航站楼 (AirportTerminal)",
-    "停机坪 (Runway)",
-    "高速公路 (Freeway)",
     "铁路 (Railway)",
-    "停车场 (Parking)",
-    "工地 (ConstructionSite)",
-    "灾害 (Disaster)",
-    "立交桥 (Overpass)"
+    "度假村 (Resort)",
+    "岩石 (Rock)",
+    "环形交叉路口 (Roundabout)",
+    "灌木丛 (Scrub)",
+    "太阳能发电厂 (Solar power plant)",
+    "体育场 (Stadium)",
+    "变电站 (Substation)",
+    "网球场 (Tennis court)",
+    "主题公园 (Theme park)",
+    "城中村 (Urban village)",
+    "空置停车场 (Vacant parking lot)",
+    "湿地 (Wetland)"
 ]
 
 
@@ -312,7 +322,14 @@ class FSLService(BaseService, ModelServiceMixin, ImageServiceMixin):
 
     def _find_dataset_path(self) -> str:
         """查找数据集路径"""
+        # 优先从 Release 目录查找支撑集
+        script_dir = os.path.dirname(os.path.abspath(__file__))
         possible_paths = [
+            # Release 目录下的 support 文件夹（打包后使用）
+            os.path.join(script_dir, "../support"),
+            os.path.join(script_dir, "../../support"),
+            os.path.join(script_dir, "../../../support"),
+            # 开发环境的 data 目录
             "data/MEET-FSL-official",
             "../data/MEET-FSL-official",
             "../../data/MEET-FSL-official",
